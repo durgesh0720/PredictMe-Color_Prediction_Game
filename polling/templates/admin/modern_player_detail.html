@@ -1,0 +1,728 @@
+{% extends 'admin/modern_base.html' %}
+{% load math_filters %}
+
+{% block title %}Player Details - {{ player.username }}{% endblock %}
+{% block page_title %}Player Details{% endblock %}
+
+{% block extra_css %}
+<style>
+    .player-header {
+        background: linear-gradient(135deg, var(--primary), var(--info));
+        color: white;
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .player-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2" fill="rgba(255,255,255,0.1)"/></svg>') repeat;
+        animation: float 20s linear infinite;
+    }
+    
+    @keyframes float {
+        0% { transform: translateX(-100px) translateY(-100px); }
+        100% { transform: translateX(100px) translateY(100px); }
+    }
+    
+    .player-info {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+    }
+    
+    .player-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 700;
+        color: white;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .player-details {
+        flex: 1;
+    }
+    
+    .player-name {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .player-meta {
+        display: flex;
+        gap: 2rem;
+        flex-wrap: wrap;
+        opacity: 0.9;
+    }
+    
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .player-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .btn-action {
+        padding: 0.5rem 1rem;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border-radius: var(--radius);
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .btn-action:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+        position: relative;
+        overflow: hidden;
+        text-align: center;
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+    }
+    
+    .stat-card.wallet::before { background: var(--success); }
+    .stat-card.bets::before { background: var(--info); }
+    .stat-card.wins::before { background: var(--warning); }
+    .stat-card.winrate::before { background: var(--danger); }
+    
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        color: white;
+        font-size: 1.25rem;
+    }
+    
+    .stat-card.wallet .stat-icon { background: var(--success); }
+    .stat-card.bets .stat-icon { background: var(--info); }
+    .stat-card.wins .stat-icon { background: var(--warning); }
+    .stat-card.winrate .stat-icon { background: var(--danger); }
+    
+    .stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-label {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-change {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: var(--radius);
+        font-weight: 500;
+    }
+    
+    .change-positive {
+        background: #dcfce7;
+        color: #166534;
+    }
+    
+    .change-negative {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+    
+    .content-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .betting-history {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+        overflow: hidden;
+    }
+    
+    .section-header {
+        background: var(--bg-main);
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: between;
+        align-items: center;
+    }
+    
+    .section-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .section-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        border-radius: var(--radius);
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+    }
+    
+    .btn-secondary {
+        background: var(--secondary);
+        color: white;
+    }
+    
+    .btn-sm:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow);
+    }
+    
+    .bets-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .bets-table th,
+    .bets-table td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid var(--border-light);
+    }
+    
+    .bets-table th {
+        background: var(--bg-main);
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .bets-table td {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+    
+    .bets-table tr:hover {
+        background: var(--bg-main);
+    }
+    
+    .bet-color {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .color-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+    
+    .color-red { background: #ef4444; }
+    .color-green { background: #10b981; }
+    .color-violet { background: #8b5cf6; }
+    .color-blue { background: #3b82f6; }
+    
+    .bet-result {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .result-win {
+        background: #dcfce7;
+        color: #166534;
+    }
+    
+    .result-loss {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+    
+    .result-pending {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    
+    .player-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    .info-card {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+    }
+    
+    .info-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .info-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .info-item {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--border-light);
+        font-size: 0.875rem;
+    }
+    
+    .info-item:last-child {
+        border-bottom: none;
+    }
+    
+    .info-label {
+        color: var(--text-secondary);
+    }
+    
+    .info-value {
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+    
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .status-active {
+        background: #dcfce7;
+        color: #166534;
+    }
+    
+    .status-inactive {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: var(--text-light);
+    }
+    
+    .empty-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.3;
+    }
+    
+    @media (max-width: 1024px) {
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .player-info {
+            flex-direction: column;
+            text-align: center;
+            gap: 1rem;
+        }
+        
+        .player-meta {
+            justify-content: center;
+        }
+        
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .bets-table {
+            font-size: 0.75rem;
+        }
+        
+        .bets-table th,
+        .bets-table td {
+            padding: 0.75rem 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Player Header -->
+<div class="player-header">
+    <div class="player-info">
+        <div class="player-avatar">
+            {{ player.username|first|upper }}
+        </div>
+        <div class="player-details">
+            <h1 class="player-name">{{ player.username }}</h1>
+            <div class="player-meta">
+                <div class="meta-item">
+                    <i class="fas fa-calendar"></i>
+                    Joined {{ player.date_joined|date:"M d, Y" }}
+                </div>
+                <div class="meta-item">
+                    <i class="fas fa-envelope"></i>
+                    {{ player.email|default:"No email" }}
+                </div>
+                <div class="meta-item">
+                    <i class="fas fa-clock"></i>
+                    Last seen {{ player.last_login|date:"M d, H:i"|default:"Never" }}
+                </div>
+            </div>
+        </div>
+        <div class="player-actions">
+            <button class="btn-action" onclick="editPlayer()">
+                <i class="fas fa-edit"></i>
+                Edit
+            </button>
+            <button class="btn-action" onclick="suspendPlayer()">
+                <i class="fas fa-ban"></i>
+                Suspend
+            </button>
+            <button class="btn-action" onclick="resetPassword()">
+                <i class="fas fa-key"></i>
+                Reset Password
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Grid -->
+<div class="stats-grid">
+    <div class="stat-card wallet">
+        <div class="stat-icon">
+            <i class="fas fa-wallet"></i>
+        </div>
+        <div class="stat-value">₹{{ player.balance|default:"0" }}</div>
+        <div class="stat-label">Wallet Balance</div>
+        <div class="stat-change change-positive">
+            <i class="fas fa-arrow-up"></i> +₹500 this week
+        </div>
+    </div>
+    
+    <div class="stat-card bets">
+        <div class="stat-icon">
+            <i class="fas fa-dice"></i>
+        </div>
+        <div class="stat-value">{{ player.total_bets|default:"0" }}</div>
+        <div class="stat-label">Total Bets</div>
+        <div class="stat-change change-positive">
+            <i class="fas fa-arrow-up"></i> +12 this week
+        </div>
+    </div>
+    
+    <div class="stat-card wins">
+        <div class="stat-icon">
+            <i class="fas fa-trophy"></i>
+        </div>
+        <div class="stat-value">{{ player.total_wins|default:"0" }}</div>
+        <div class="stat-label">Total Wins</div>
+        <div class="stat-change change-positive">
+            <i class="fas fa-arrow-up"></i> +5 this week
+        </div>
+    </div>
+    
+    <div class="stat-card winrate">
+        <div class="stat-icon">
+            <i class="fas fa-percentage"></i>
+        </div>
+        <div class="stat-value">{{ player.win_rate|default:"0" }}%</div>
+        <div class="stat-label">Win Rate</div>
+        <div class="stat-change change-negative">
+            <i class="fas fa-arrow-down"></i> -2.3% this week
+        </div>
+    </div>
+</div>
+
+<!-- Content Grid -->
+<div class="content-grid">
+    <!-- Betting History -->
+    <div class="betting-history">
+        <div class="section-header">
+            <h3 class="section-title">
+                <i class="fas fa-history"></i>
+                Betting History
+            </h3>
+            <div class="section-actions">
+                <button class="btn-sm btn-secondary" onclick="exportBets()">
+                    <i class="fas fa-download"></i>
+                    Export
+                </button>
+                <button class="btn-sm btn-primary" onclick="refreshBets()">
+                    <i class="fas fa-sync-alt"></i>
+                    Refresh
+                </button>
+            </div>
+        </div>
+        
+        {% if player_bets %}
+        <table class="bets-table">
+            <thead>
+                <tr>
+                    <th>Game</th>
+                    <th>Color</th>
+                    <th>Amount</th>
+                    <th>Result</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bet in player_bets %}
+                <tr>
+                    <td>{{ bet.round.room|title }}</td>
+                    <td>
+                        <div class="bet-color">
+                            <div class="color-dot color-{{ bet.color }}"></div>
+                            {{ bet.color|title }}
+                        </div>
+                    </td>
+                    <td>₹{{ bet.amount }}</td>
+                    <td>
+                        <span class="bet-result result-{{ bet.result|default:'pending' }}">
+                            {{ bet.result|default:"Pending"|title }}
+                        </span>
+                    </td>
+                    <td>{{ bet.created_at|date:"M d, H:i" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-dice"></i>
+            </div>
+            <h3>No Betting History</h3>
+            <p>This player hasn't placed any bets yet.</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Player Sidebar -->
+    <div class="player-sidebar">
+        <!-- Account Information -->
+        <div class="info-card">
+            <h4 class="info-title">
+                <i class="fas fa-user"></i>
+                Account Information
+            </h4>
+            <ul class="info-list">
+                <li class="info-item">
+                    <span class="info-label">Status</span>
+                    <span class="info-value">
+                        <span class="status-badge {% if player.is_active %}status-active{% else %}status-inactive{% endif %}">
+                            {% if player.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </span>
+                </li>
+                <li class="info-item">
+                    <span class="info-label">User ID</span>
+                    <span class="info-value">#{{ player.id }}</span>
+                </li>
+                <li class="info-item">
+                    <span class="info-label">Phone</span>
+                    <span class="info-value">{{ player.phone|default:"Not provided" }}</span>
+                </li>
+                <li class="info-item">
+                    <span class="info-label">Referral Code</span>
+                    <span class="info-value">{{ player.referral_code|default:"None" }}</span>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- Financial Summary -->
+        <div class="info-card">
+            <h4 class="info-title">
+                <i class="fas fa-chart-pie"></i>
+                Financial Summary
+            </h4>
+            <ul class="info-list">
+                <li class="info-item">
+                    <span class="info-label">Total Deposited</span>
+                    <span class="info-value">₹{{ player.total_deposited|default:"0" }}</span>
+                </li>
+                <li class="info-item">
+                    <span class="info-label">Total Withdrawn</span>
+                    <span class="info-value">₹{{ player.total_withdrawn|default:"0" }}</span>
+                </li>
+                <li class="info-item">
+                    <span class="info-label">Total Bet Amount</span>
+                    <span class="info-value">₹{{ player.total_bet_amount|default:"0" }}</span>
+                </li>
+                <li class="info-item">
+                    <span class="info-label">Total Winnings</span>
+                    <span class="info-value">₹{{ player.total_winnings|default:"0" }}</span>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="info-card">
+            <h4 class="info-title">
+                <i class="fas fa-tools"></i>
+                Quick Actions
+            </h4>
+            <div class="d-flex flex-column gap-2">
+                <button class="btn btn-primary" onclick="adjustWallet()">
+                    <i class="fas fa-wallet"></i>
+                    Adjust Wallet
+                </button>
+                <button class="btn btn-secondary" onclick="viewTransactions()">
+                    <i class="fas fa-list"></i>
+                    View Transactions
+                </button>
+                <button class="btn btn-secondary" onclick="sendMessage()">
+                    <i class="fas fa-envelope"></i>
+                    Send Message
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Navigation -->
+<div class="d-flex gap-2">
+    <a href="{% url 'admin_user_management' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Users
+    </a>
+    <button class="btn btn-primary" onclick="generatePlayerReport()">
+        <i class="fas fa-file-pdf"></i> Generate Report
+    </button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function editPlayer() {
+        alert('Edit player functionality will be implemented');
+    }
+    
+    function suspendPlayer() {
+        if (confirm('Are you sure you want to suspend this player?')) {
+            alert('Suspend player functionality will be implemented');
+        }
+    }
+    
+    function resetPassword() {
+        if (confirm('Are you sure you want to reset this player\'s password?')) {
+            alert('Reset password functionality will be implemented');
+        }
+    }
+    
+    function adjustWallet() {
+        const amount = prompt('Enter amount to add/subtract (use negative for subtraction):');
+        if (amount !== null) {
+            alert('Wallet adjustment functionality will be implemented');
+        }
+    }
+    
+    function viewTransactions() {
+        alert('View transactions functionality will be implemented');
+    }
+    
+    function sendMessage() {
+        alert('Send message functionality will be implemented');
+    }
+    
+    function exportBets() {
+        alert('Export bets functionality will be implemented');
+    }
+    
+    function refreshBets() {
+        location.reload();
+    }
+    
+    function generatePlayerReport() {
+        alert('Generate player report functionality will be implemented');
+    }
+</script>
+{% endblock %}

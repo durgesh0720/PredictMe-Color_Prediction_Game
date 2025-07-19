@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Betting History - Color Prediction Game</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      margin: 0;
+      padding: 20px 0;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+      border-bottom: 2px solid #f0f0f0;
+      padding-bottom: 20px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .stat-label {
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+    .filters {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .filter-group label {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #555;
+    }
+    .filter-group select {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 0.9rem;
+    }
+    .color-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    .color-stat {
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      color: white;
+    }
+    .color-stat.red { background: #dc2626; }
+    .color-stat.green { background: #059669; }
+    .color-stat.violet { background: #7c3aed; }
+    .color-details p { margin: 5px 0; font-size: 0.9rem; }
+
+    /* Game Statistics */
+    .game-stats {
+      margin-bottom: 30px;
+    }
+    .game-stats h3 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #374151;
+    }
+    .game-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+    .game-stat-card {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+      text-align: center;
+    }
+    .game-stat-card h4 {
+      margin: 0 0 10px 0;
+      color: #374151;
+    }
+    .game-details p {
+      margin: 5px 0;
+      font-size: 0.9rem;
+    }
+    /* Enhanced Table Styles */
+    .table-container {
+      overflow-x: auto;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      min-width: 1000px;
+    }
+    .history-table th,
+    .history-table td {
+      padding: 12px 8px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+      vertical-align: top;
+    }
+    .history-table th {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      font-weight: 600;
+      font-size: 0.9rem;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .history-table tbody tr:hover {
+      background: #f8f9fa;
+    }
+    .win-row { background: rgba(16, 185, 129, 0.05); }
+    .loss-row { background: rgba(239, 68, 68, 0.05); }
+    .pending-row { background: rgba(245, 158, 11, 0.05); }
+
+    /* Table Cell Styles */
+    .date-time {
+      font-size: 0.85rem;
+    }
+    .date {
+      font-weight: 600;
+      color: #374151;
+    }
+    .time {
+      color: #6b7280;
+      font-size: 0.8rem;
+    }
+    .game-badge {
+      background: #667eea;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .period-id {
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+    .number-badge {
+      background: #374151;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .amount {
+      font-weight: 600;
+      color: #374151;
+    }
+    .result {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .result-number {
+      background: #374151;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+    .pending-result {
+      color: #d97706;
+      font-weight: 500;
+    }
+    .payout {
+      font-weight: 600;
+      color: #059669;
+    }
+    .multiplier {
+      background: #10b981;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .no-multiplier {
+      color: #9ca3af;
+    }
+    .profit-loss {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .details {
+      font-size: 0.75rem;
+    }
+    .admin-tag {
+      background: #f59e0b;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      display: inline-block;
+      margin-bottom: 2px;
+    }
+    .auto-tag {
+      background: #6b7280;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      display: inline-block;
+      margin-bottom: 2px;
+    }
+
+    .admin-details {
+      margin-top: 3px;
+      padding: 2px 0;
+    }
+
+    .admin-details small {
+      display: block;
+      color: #6b7280;
+      font-size: 0.7rem;
+      line-height: 1.2;
+    }
+    .duration {
+      color: #6b7280;
+      margin-top: 2px;
+    }
+    .no-data {
+      text-align: center;
+      color: #6b7280;
+    }
+    .bet-result {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-align: center;
+      min-width: 60px;
+      display: inline-block;
+    }
+    .bet-result.win {
+      background: #dcfce7;
+      color: #059669;
+      border: 1px solid #a7f3d0;
+    }
+    .bet-result.loss {
+      background: #fee2e2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+    }
+    .bet-result.pending {
+      background: #fef3c7;
+      color: #d97706;
+      border: 1px solid #fde68a;
+    }
+    .color-badge {
+      padding: 4px 8px;
+      border-radius: 4px;
+      color: white;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .color-badge.red { background: #dc2626; }
+    .color-badge.green { background: #059669; }
+    .color-badge.violet { background: #7c3aed; }
+    .pagination {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .pagination a,
+    .pagination span {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      text-decoration: none;
+      color: #555;
+    }
+    .pagination .current {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .actions {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin-top: 30px;
+      flex-wrap: wrap;
+    }
+    @media (max-width: 768px) {
+      .container { padding: 20px; }
+      .stats-grid { grid-template-columns: 1fr; }
+      .filters { flex-direction: column; align-items: stretch; }
+      .color-stats { grid-template-columns: 1fr; }
+      .history-table { font-size: 0.9rem; }
+      .actions { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📊 My Betting History</h1>
+      <p class="subtitle">Track your performance and analyze your betting patterns</p>
+    </div>
+
+    <!-- Enhanced Statistics Overview -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value">{{ total_bets }}</div>
+        <div class="stat-label">Total Bets</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ total_wins }}</div>
+        <div class="stat-label">Wins</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ total_losses }}</div>
+        <div class="stat-label">Losses</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ pending_bets }}</div>
+        <div class="stat-label">Pending</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ win_rate|floatformat:1 }}%</div>
+        <div class="stat-label">Win Rate</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">{{ recent_performance|floatformat:1 }}%</div>
+        <div class="stat-label">Recent Form (L10)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">₹{{ total_wagered|floatformat:0 }}</div>
+        <div class="stat-label">Total Wagered</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">₹{{ total_winnings|floatformat:0 }}</div>
+        <div class="stat-label">Total Winnings</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color: {% if net_profit >= 0 %}#10b981{% else %}#ef4444{% endif %}">
+          ₹{{ net_profit|floatformat:0 }}
+        </div>
+        <div class="stat-label">Net Profit/Loss</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">₹{{ biggest_win|floatformat:0 }}</div>
+        <div class="stat-label">Biggest Win</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">₹{{ biggest_loss|floatformat:0 }}</div>
+        <div class="stat-label">Biggest Loss</div>
+      </div>
+    </div>
+
+    <!-- Enhanced Color Statistics -->
+    <div class="color-stats">
+      <div class="color-stat red">
+        <h4>🔴 RED</h4>
+        <div class="color-details">
+          <p><strong>{{ color_stats.red.total }}</strong> bets | <strong>{{ color_stats.red.wins }}</strong> wins | <strong>{{ color_stats.red.losses }}</strong> losses</p>
+          <p>Win Rate: <strong>{{ color_stats.red.win_rate|floatformat:1 }}%</strong></p>
+          <p>Wagered: <strong>₹{{ color_stats.red.wagered|floatformat:0 }}</strong></p>
+          <p>Winnings: <strong>₹{{ color_stats.red.winnings|floatformat:0 }}</strong></p>
+          <p style="color: {% if color_stats.red.profit >= 0 %}#dcfce7{% else %}#fee2e2{% endif %}">
+            Profit: <strong>₹{{ color_stats.red.profit|floatformat:0 }}</strong>
+          </p>
+        </div>
+      </div>
+      <div class="color-stat green">
+        <h4>🟢 GREEN</h4>
+        <div class="color-details">
+          <p><strong>{{ color_stats.green.total }}</strong> bets | <strong>{{ color_stats.green.wins }}</strong> wins | <strong>{{ color_stats.green.losses }}</strong> losses</p>
+          <p>Win Rate: <strong>{{ color_stats.green.win_rate|floatformat:1 }}%</strong></p>
+          <p>Wagered: <strong>₹{{ color_stats.green.wagered|floatformat:0 }}</strong></p>
+          <p>Winnings: <strong>₹{{ color_stats.green.winnings|floatformat:0 }}</strong></p>
+          <p style="color: {% if color_stats.green.profit >= 0 %}#dcfce7{% else %}#fee2e2{% endif %}">
+            Profit: <strong>₹{{ color_stats.green.profit|floatformat:0 }}</strong>
+          </p>
+        </div>
+      </div>
+      <div class="color-stat violet">
+        <h4>🟣 VIOLET</h4>
+        <div class="color-details">
+          <p><strong>{{ color_stats.violet.total }}</strong> bets | <strong>{{ color_stats.violet.wins }}</strong> wins | <strong>{{ color_stats.violet.losses }}</strong> losses</p>
+          <p>Win Rate: <strong>{{ color_stats.violet.win_rate|floatformat:1 }}%</strong></p>
+          <p>Wagered: <strong>₹{{ color_stats.violet.wagered|floatformat:0 }}</strong></p>
+          <p>Winnings: <strong>₹{{ color_stats.violet.winnings|floatformat:0 }}</strong></p>
+          <p style="color: {% if color_stats.violet.profit >= 0 %}#dcfce7{% else %}#fee2e2{% endif %}">
+            Profit: <strong>₹{{ color_stats.violet.profit|floatformat:0 }}</strong>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Type Statistics -->
+    <div class="game-stats">
+      <h3>📊 Performance by Game Type</h3>
+      <div class="game-stats-grid">
+        {% for game, stats in game_stats.items %}
+        <div class="game-stat-card">
+          <h4>{{ game|upper }}</h4>
+          <div class="game-details">
+            <p>Bets: <strong>{{ stats.total }}</strong> | Wins: <strong>{{ stats.wins }}</strong></p>
+            <p>Win Rate: <strong>{{ stats.win_rate|floatformat:1 }}%</strong></p>
+            <p>Profit: <strong style="color: {% if stats.profit >= 0 %}#059669{% else %}#dc2626{% endif %}">₹{{ stats.profit|floatformat:0 }}</strong></p>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Enhanced Filters -->
+    <form method="get" class="filters">
+      <div class="filter-group">
+        <label>Filter by Result:</label>
+        <select name="filter">
+          <option value="all" {% if filter_type == 'all' %}selected{% endif %}>All Bets</option>
+          <option value="wins" {% if filter_type == 'wins' %}selected{% endif %}>✅ Wins Only</option>
+          <option value="losses" {% if filter_type == 'losses' %}selected{% endif %}>❌ Losses Only</option>
+          <option value="pending" {% if filter_type == 'pending' %}selected{% endif %}>⏳ Pending</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Game Type:</label>
+        <select name="game_type">
+          <option value="all" {% if game_type == 'all' %}selected{% endif %}>All Games</option>
+          {% for game in available_games %}
+          <option value="{{ game }}" {% if game_type == game %}selected{% endif %}>{{ game|upper }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Color:</label>
+        <select name="color">
+          <option value="all" {% if color_filter == 'all' %}selected{% endif %}>All Colors</option>
+          <option value="red" {% if color_filter == 'red' %}selected{% endif %}>🔴 Red</option>
+          <option value="green" {% if color_filter == 'green' %}selected{% endif %}>🟢 Green</option>
+          <option value="violet" {% if color_filter == 'violet' %}selected{% endif %}>🟣 Violet</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Date Range:</label>
+        <select name="date_range">
+          <option value="1" {% if date_range == '1' %}selected{% endif %}>Today</option>
+          <option value="7" {% if date_range == '7' %}selected{% endif %}>Last 7 days</option>
+          <option value="30" {% if date_range == '30' %}selected{% endif %}>Last 30 days</option>
+          <option value="90" {% if date_range == '90' %}selected{% endif %}>Last 90 days</option>
+          <option value="all" {% if date_range == 'all' %}selected{% endif %}>All time</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">🔍 Apply Filters</button>
+      <a href="{% url 'user_history' %}" class="btn btn-secondary">🔄 Reset</a>
+    </form>
+
+    <!-- Enhanced Betting History Table -->
+    <div class="table-container">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>📅 Date & Time</th>
+            <th>🎮 Game</th>
+            <th>🎯 Bet</th>
+            <th>💰 Amount</th>
+            <th>🎲 Result</th>
+            <th>💸 Payout</th>
+            <th>📊 Multiplier</th>
+            <th>💵 P&L</th>
+            <th>✅ Status</th>
+            <!-- <th>ℹ️ Details</th> -->
+          </tr>
+        </thead>
+        <tbody>
+          {% for bet_info in enhanced_bets %}
+          {% with bet=bet_info.bet %}
+          <tr class="{% if bet.correct %}win-row{% elif bet.correct == False %}loss-row{% else %}pending-row{% endif %}">
+            <td>
+              <div class="date-time">
+                <div class="date">{{ bet.created_at|date:"M d, Y" }}</div>
+                <div class="time">{{ bet.created_at|date:"H:i:s" }}</div>
+              </div>
+            </td>
+            <td>
+              <span class="game-badge">{{ bet.round.game_type|upper }}</span>
+              <div class="period-id">Period: {{ bet.round.period_id }}</div>
+            </td>
+            <td>
+              {% if bet.color %}
+                <span class="color-badge {{ bet.color }}">
+                  {% if bet.color == 'red' %}🔴{% elif bet.color == 'green' %}🟢{% else %}🟣{% endif %}
+                  {{ bet.color|upper }}
+                </span>
+              {% else %}
+                <span class="number-badge">
+                  🔢 {{ bet.number }}
+                </span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="amount">₹{{ bet.amount|floatformat:0 }}</div>
+            </td>
+            <td>
+              {% if bet.round.result_number is not None %}
+                <div class="result">
+                  <span class="result-number">{{ bet.round.result_number }}</span>
+                  <span class="color-badge {{ bet.round.result_color }}">
+                    {% if bet.round.result_color == 'red' %}🔴{% elif bet.round.result_color == 'green' %}🟢{% else %}🟣{% endif %}
+                    {{ bet.round.result_color|upper }}
+                  </span>
+                </div>
+              {% else %}
+                <span class="pending-result">⏳ Pending</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="payout">₹{{ bet.payout|default:"0"|floatformat:0 }}</div>
+            </td>
+            <td>
+              {% if bet_info.multiplier > 0 %}
+                <span class="multiplier">{{ bet_info.multiplier }}x</span>
+              {% else %}
+                <span class="no-multiplier">-</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="profit-loss" style="color: {% if bet_info.profit_loss > 0 %}#059669{% elif bet_info.profit_loss < 0 %}#dc2626{% else %}#6b7280{% endif %}">
+                {% if bet_info.profit_loss > 0 %}+{% endif %}₹{{ bet_info.profit_loss|floatformat:0 }}
+              </div>
+            </td>
+            <td>
+              {% if bet.round.ended %}
+                {% if bet.correct %}
+                  <span class="bet-result win">✅ WIN</span>
+                {% else %}
+                  <span class="bet-result loss">❌ LOSS</span>
+                {% endif %}
+              {% else %}
+                <span class="bet-result pending">⏳ PENDING</span>
+              {% endif %}
+            </td>
+            <!-- <td>
+              <div class="details">
+                {% if bet_info.admin_selection.selected %}
+                  {% if bet_info.admin_selection.is_auto_selected %}
+                    <span class="auto-tag" title="Result was auto-generated by system">🤖 Auto</span>
+                  {% else %}
+                    <span class="admin-tag" title="Admin {{ bet_info.admin_selection.admin_username }} manually selected {{ bet_info.admin_selection.selected_color|title }}">
+                      👨‍💼 {{ bet_info.admin_selection.admin_username }}
+                    </span>
+                    {% if bet_info.admin_selection.selected_color %}
+                      <div class="admin-details">
+                        <small>Selected: <strong>{{ bet_info.admin_selection.selected_color|title }}</strong></small>
+                        {% if bet_info.admin_selection.selection_time %}
+                          <small>at {{ bet_info.admin_selection.selection_time }}</small>
+                        {% endif %}
+                      </div>
+                    {% endif %}
+                  {% endif %}
+                {% else %}
+                  <span class="auto-tag" title="No admin selection found - system generated">🤖 System</span>
+                {% endif %}
+                {% if bet_info.round_duration %}
+                  <div class="duration">⏱️ {{ bet_info.round_duration }}s</div>
+                {% endif %}
+              </div>
+            </td> -->
+          </tr>
+          {% endwith %}
+          {% empty %}
+          <tr>
+            <td colspan="10" style="text-align: center; padding: 40px; color: #666;">
+              <div class="no-data">
+                <div style="font-size: 3rem; margin-bottom: 10px;">📊</div>
+                <div>No betting history found for the selected filters.</div>
+                <div style="margin-top: 10px;">
+                  <a href="{% url 'index' %}" class="btn btn-primary">🎮 Start Playing</a>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Enhanced Pagination -->
+    {% if bets.has_other_pages %}
+    <div class="pagination">
+      {% if bets.has_previous %}
+        <a href="?page=1&filter={{ filter_type }}&game_type={{ game_type }}&color={{ color_filter }}&date_range={{ date_range }}">&laquo; First</a>
+        <a href="?page={{ bets.previous_page_number }}&filter={{ filter_type }}&game_type={{ game_type }}&color={{ color_filter }}&date_range={{ date_range }}">Previous</a>
+      {% endif %}
+
+      <span class="current">
+        Page {{ bets.number }} of {{ bets.paginator.num_pages }} ({{ bets.paginator.count }} total bets)
+      </span>
+
+      {% if bets.has_next %}
+        <a href="?page={{ bets.next_page_number }}&filter={{ filter_type }}&game_type={{ game_type }}&color={{ color_filter }}&date_range={{ date_range }}">Next</a>
+        <a href="?page={{ bets.paginator.num_pages }}&filter={{ filter_type }}&game_type={{ game_type }}&color={{ color_filter }}&date_range={{ date_range }}">Last &raquo;</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Enhanced Actions -->
+    <div class="actions">
+      <a href="{% url 'wallet_management' %}" class="btn btn-primary">💰 Manage Wallet</a>
+      <a href="{% url 'transaction_history' %}" class="btn btn-primary">📊 Transaction History</a>
+      <a href="{% url 'user_profile' %}" class="btn btn-secondary">👤 Back to Profile</a>
+      <a href="{% url 'index' %}" class="btn btn-secondary">🎮 Play Game</a>
+      <button onclick="exportHistory()" class="btn btn-secondary">📥 Export Data</button>
+    </div>
+
+    <!-- Export functionality -->
+    <script>
+    function exportHistory() {
+      const data = {
+        player: '{{ player.username }}',
+        exported_at: new Date().toISOString(),
+        statistics: {
+          total_bets: {{ total_bets }},
+          total_wins: {{ total_wins }},
+          total_losses: {{ total_losses }},
+          win_rate: {{ win_rate|floatformat:2 }},
+          total_wagered: {{ total_wagered }},
+          total_winnings: {{ total_winnings }},
+          net_profit: {{ net_profit }}
+        },
+        color_stats: {{ color_stats|safe }},
+        game_stats: {{ game_stats|safe }}
+      };
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: 'application/json'
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `betting-history-{{ player.username }}-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      // Show notification if available
+      if (typeof notify !== 'undefined') {
+        notify.success('Betting history exported successfully!');
+      } else {
+        alert('Betting history exported successfully!');
+      }
+    }
+    </script>
+  </div>
+</body>
+</html>

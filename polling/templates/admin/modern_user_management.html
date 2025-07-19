@@ -1,0 +1,826 @@
+{% extends 'admin/modern_base.html' %}
+{% load math_filters %}
+
+{% block title %}User Management{% endblock %}
+{% block page_title %}User Management{% endblock %}
+
+{% block extra_css %}
+<style>
+    .search-bar {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+    }
+    
+    .search-form {
+        display: flex;
+        gap: 1rem;
+        align-items: end;
+        flex-wrap: wrap;
+    }
+    
+    .search-group {
+        flex: 1;
+        min-width: 200px;
+    }
+    
+    .search-label {
+        display: block;
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .search-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+    
+    .search-input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+    
+    .search-btn {
+        padding: 0.75rem 1.5rem;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: var(--radius);
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .search-btn:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+    }
+    
+    .stats-overview {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+    }
+    
+    .stat-card.total::before { background: var(--info); }
+    .stat-card.active::before { background: var(--success); }
+    .stat-card.new::before { background: var(--warning); }
+    .stat-card.high-value::before { background: var(--danger); }
+    
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        color: white;
+        font-size: 1.25rem;
+    }
+    
+    .stat-card.total .stat-icon { background: var(--info); }
+    .stat-card.active .stat-icon { background: var(--success); }
+    .stat-card.new .stat-icon { background: var(--warning); }
+    .stat-card.high-value .stat-icon { background: var(--danger); }
+    
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-label {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .users-table-container {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+        overflow: hidden;
+    }
+    
+    .table-header {
+        background: var(--bg-main);
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .table-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .table-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+    
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        border-radius: var(--radius);
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+    }
+    
+    .btn-secondary {
+        background: var(--secondary);
+        color: white;
+    }
+    
+    .btn-sm:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow);
+    }
+    
+    .users-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .users-table th,
+    .users-table td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid var(--border-light);
+    }
+    
+    .users-table th {
+        background: var(--bg-main);
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .users-table td {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+    
+    .users-table tr:hover {
+        background: var(--bg-main);
+    }
+    
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 0.875rem;
+        flex-shrink: 0;
+    }
+    
+    .user-details {
+        flex: 1;
+    }
+    
+    .user-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+    }
+    
+    .user-email {
+        color: var(--text-light);
+        font-size: 0.75rem;
+    }
+    
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .status-active {
+        background: #dcfce7;
+        color: #166534;
+    }
+    
+    .status-inactive {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+    
+    .wallet-amount {
+        font-weight: 600;
+        color: var(--success);
+    }
+    
+    .bet-stats {
+        text-align: center;
+    }
+    
+    .bet-count {
+        font-weight: 600;
+        color: var(--text-primary);
+        display: block;
+    }
+    
+    .bet-amount {
+        color: var(--text-light);
+        font-size: 0.75rem;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .btn-action {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius);
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        font-size: 0.875rem;
+    }
+    
+    .btn-view {
+        background: var(--info);
+        color: white;
+    }
+    
+    .btn-edit {
+        background: var(--warning);
+        color: white;
+    }
+    
+    .btn-delete {
+        background: var(--danger);
+        color: white;
+    }
+    
+    .btn-action:hover {
+        transform: scale(1.1);
+    }
+    
+    .pagination {
+        padding: 1.5rem;
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        border-top: 1px solid var(--border-light);
+    }
+    
+    .pagination-info {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+    
+    .pagination-controls {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .pagination-btn {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border);
+        background: var(--bg-card);
+        color: var(--text-secondary);
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.875rem;
+    }
+    
+    .pagination-btn:hover {
+        background: var(--bg-main);
+        border-color: var(--primary);
+    }
+    
+    .pagination-btn.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: var(--text-light);
+    }
+    
+    .empty-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.3;
+    }
+    
+    @media (max-width: 768px) {
+        .search-form {
+            flex-direction: column;
+        }
+        
+        .search-group {
+            min-width: 100%;
+        }
+        
+        .stats-overview {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .table-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .users-table {
+            font-size: 0.75rem;
+        }
+        
+        .users-table th,
+        .users-table td {
+            padding: 0.75rem 0.5rem;
+        }
+        
+        .user-info {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Search Bar -->
+<div class="search-bar">
+    <form method="get" class="search-form">
+        <div class="search-group">
+            <label class="search-label">Search Users</label>
+            <input type="text" name="search" class="search-input" 
+                   placeholder="Username, email, or phone..." 
+                   value="{{ request.GET.search }}">
+        </div>
+        <div class="search-group">
+            <label class="search-label">Status</label>
+            <select name="status" class="search-input">
+                <option value="">All Status</option>
+                <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
+                <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactive</option>
+            </select>
+        </div>
+        <div class="search-group">
+            <label class="search-label">Sort By</label>
+            <select name="sort" class="search-input">
+                <option value="-date_joined" {% if request.GET.sort == '-date_joined' %}selected{% endif %}>Newest First</option>
+                <option value="date_joined" {% if request.GET.sort == 'date_joined' %}selected{% endif %}>Oldest First</option>
+                <option value="username" {% if request.GET.sort == 'username' %}selected{% endif %}>Username A-Z</option>
+                <option value="-username" {% if request.GET.sort == '-username' %}selected{% endif %}>Username Z-A</option>
+            </select>
+        </div>
+        <button type="submit" class="search-btn">
+            <i class="fas fa-search"></i>
+            Search
+        </button>
+    </form>
+</div>
+
+<!-- Statistics Overview -->
+<div class="stats-overview">
+    <div class="stat-card total">
+        <div class="stat-icon">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-value">{{ total_users|default:"0" }}</div>
+        <div class="stat-label">Total Users</div>
+    </div>
+    
+    <div class="stat-card active">
+        <div class="stat-icon">
+            <i class="fas fa-user-check"></i>
+        </div>
+        <div class="stat-value">{{ active_users|default:"0" }}</div>
+        <div class="stat-label">Active Users</div>
+    </div>
+    
+    <div class="stat-card new">
+        <div class="stat-icon">
+            <i class="fas fa-user-plus"></i>
+        </div>
+        <div class="stat-value">{{ new_users_today|default:"0" }}</div>
+        <div class="stat-label">New Today</div>
+    </div>
+    
+    <div class="stat-card high-value">
+        <div class="stat-icon">
+            <i class="fas fa-crown"></i>
+        </div>
+        <div class="stat-value">{{ high_value_users|default:"0" }}</div>
+        <div class="stat-label">High Value</div>
+    </div>
+</div>
+
+<!-- Users Table -->
+<div class="users-table-container">
+    <div class="table-header">
+        <h3 class="table-title">
+            <i class="fas fa-list"></i>
+            User List
+        </h3>
+        <div class="table-actions">
+            <button class="btn-sm btn-secondary" onclick="exportUsers()">
+                <i class="fas fa-download"></i>
+                Export
+            </button>
+            <button class="btn-sm btn-primary" onclick="refreshData()">
+                <i class="fas fa-sync-alt"></i>
+                Refresh
+            </button>
+        </div>
+    </div>
+    
+    {% if players %}
+    <table class="users-table">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Status</th>
+                <th>Wallet</th>
+                <th>Bets</th>
+                <th>Joined</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for player in players %}
+            <tr>
+                <td>
+                    <div class="user-info">
+                        <div class="user-avatar">
+                            {{ player.username|first|upper }}
+                        </div>
+                        <div class="user-details">
+                            <div class="user-name">{{ player.username }}</div>
+                            <div class="user-email">{{ player.email|default:"No email" }}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <span class="status-badge {% if player.is_active %}status-active{% else %}status-inactive{% endif %}">
+                        {% if player.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                </td>
+                <td>
+                    <span class="wallet-amount">₹{{ player.balance|default:"0" }}</span>
+                </td>
+                <td>
+                    <div class="bet-stats">
+                        <span class="bet-count">{{ player.total_bets|default:"0" }}</span>
+                        <span class="bet-amount">₹{{ player.total_bet_amount|default:"0" }}</span>
+                    </div>
+                </td>
+                <td>
+                    {{ player.date_joined|date:"M d, Y" }}
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <a href="{% url 'admin_player_detail' player.id %}" class="btn-action btn-view" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <button class="btn-action btn-edit" onclick="editUser({{ player.id }})" title="Edit User">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-action btn-delete" onclick="deleteUser({{ player.id }})" title="Delete User">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="pagination">
+        <div class="pagination-info">
+            Showing {{ players|length }} of {{ total_users }} users
+        </div>
+        <div class="pagination-controls">
+            <button class="pagination-btn">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="pagination-btn active">1</button>
+            <button class="pagination-btn">2</button>
+            <button class="pagination-btn">3</button>
+            <button class="pagination-btn">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">
+            <i class="fas fa-users"></i>
+        </div>
+        <h3>No Users Found</h3>
+        <p>No users match your search criteria.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // WebSocket connection for real-time updates
+    let userSocket = null;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+
+    function initUserWebSocket() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/control-panel/users/`;
+
+        userSocket = new WebSocket(wsUrl);
+
+        userSocket.onopen = function(event) {
+            console.log('User management WebSocket connected');
+            reconnectAttempts = 0;
+            updateConnectionStatus(true);
+        };
+
+        userSocket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            handleUserUpdate(data);
+        };
+
+        userSocket.onclose = function(event) {
+            console.log('User management WebSocket disconnected');
+            updateConnectionStatus(false);
+
+            // Attempt to reconnect
+            if (reconnectAttempts < maxReconnectAttempts) {
+                setTimeout(() => {
+                    reconnectAttempts++;
+                    initUserWebSocket();
+                }, 3000);
+            }
+        };
+
+        userSocket.onerror = function(error) {
+            console.error('User management WebSocket error:', error);
+        };
+    }
+
+    function handleUserUpdate(data) {
+        switch(data.type) {
+            case 'user_stats_update':
+                updateUserStats(data.stats);
+                break;
+            case 'user_list_update':
+                updateUserList(data.users);
+                break;
+            default:
+                console.log('Unknown user update type:', data.type);
+        }
+    }
+
+    function updateUserStats(stats) {
+        if (stats.total_users !== undefined) {
+            const totalEl = document.querySelector('.stat-card:nth-child(1) .stat-number');
+            if (totalEl) totalEl.textContent = stats.total_users;
+        }
+
+        if (stats.active_users !== undefined) {
+            const activeEl = document.querySelector('.stat-card:nth-child(2) .stat-number');
+            if (activeEl) activeEl.textContent = stats.active_users;
+        }
+
+        if (stats.new_today !== undefined) {
+            const newTodayEl = document.querySelector('.stat-card:nth-child(3) .stat-number');
+            if (newTodayEl) newTodayEl.textContent = stats.new_today;
+        }
+
+        if (stats.high_value !== undefined) {
+            const highValueEl = document.querySelector('.stat-card:nth-child(4) .stat-number');
+            if (highValueEl) highValueEl.textContent = stats.high_value;
+        }
+    }
+
+    function updateConnectionStatus(connected) {
+        const refreshBtn = document.querySelector('button[onclick="refreshData()"]');
+        if (refreshBtn) {
+            if (connected) {
+                refreshBtn.innerHTML = '<i class="fas fa-wifi"></i> Connected';
+                refreshBtn.className = 'btn-sm btn-success';
+            } else {
+                refreshBtn.innerHTML = '<i class="fas fa-wifi"></i> Reconnecting...';
+                refreshBtn.className = 'btn-sm btn-warning';
+            }
+        }
+    }
+
+    function refreshData() {
+        if (userSocket && userSocket.readyState === WebSocket.OPEN) {
+            userSocket.send(JSON.stringify({
+                'type': 'request_user_stats'
+            }));
+            showSuccessMessage('Data refreshed via WebSocket');
+        } else {
+            // Fallback to page reload only if WebSocket is not available
+            console.log('WebSocket not connected, attempting to reconnect...');
+            initUserWebSocket();
+        }
+    }
+
+    function exportUsers() {
+        // Create CSV export functionality
+        const users = Array.from(document.querySelectorAll('.user-table tbody tr')).map(row => {
+            const cells = row.querySelectorAll('td');
+            return {
+                username: cells[1]?.textContent?.trim() || '',
+                email: cells[2]?.textContent?.trim() || '',
+                balance: cells[3]?.textContent?.trim() || '',
+                status: cells[4]?.textContent?.trim() || '',
+                joined: cells[5]?.textContent?.trim() || ''
+            };
+        });
+
+        if (users.length === 0) {
+            showErrorMessage('No users to export');
+            return;
+        }
+
+        const csvContent = [
+            ['Username', 'Email', 'Balance', 'Status', 'Joined Date'],
+            ...users.map(user => [user.username, user.email, user.balance, user.status, user.joined])
+        ].map(row => row.join(',')).join('\\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `users_export_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        showSuccessMessage('Users exported successfully');
+    }
+
+    function editUser(userId) {
+        // Redirect to player detail page for editing
+        window.location.href = `/control-panel/users/${userId}/`;
+    }
+
+    function deleteUser(userId) {
+        if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+            fetch(`/control-panel/api/delete-user/${userId}/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': getCsrfToken(),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccessMessage('User deleted successfully');
+                    // Remove the user row from the table
+                    const userRow = document.querySelector(`tr[data-user-id="${userId}"]`);
+                    if (userRow) userRow.remove();
+                } else {
+                    showErrorMessage(data.error || 'Failed to delete user');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting user:', error);
+                showErrorMessage('Failed to delete user');
+            });
+        }
+    }
+
+    function getCsrfToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+    }
+
+    function showSuccessMessage(message) {
+        // Create and show success notification
+        const notification = document.createElement('div');
+        notification.className = 'alert alert-success';
+        notification.style.position = 'fixed';
+        notification.style.top = '20px';
+        notification.style.right = '20px';
+        notification.style.zIndex = '9999';
+        notification.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
+
+        document.body.appendChild(notification);
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+
+    function showErrorMessage(message) {
+        // Create and show error notification
+        const notification = document.createElement('div');
+        notification.className = 'alert alert-danger';
+        notification.style.position = 'fixed';
+        notification.style.top = '20px';
+        notification.style.right = '20px';
+        notification.style.zIndex = '9999';
+        notification.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
+
+        document.body.appendChild(notification);
+        setTimeout(() => {
+            notification.remove();
+        }, 5000);
+    }
+
+    // Initialize WebSocket connection when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        initUserWebSocket();
+    });
+
+    // Request updated data every 30 seconds via WebSocket instead of page reload
+    setInterval(() => {
+        if (userSocket && userSocket.readyState === WebSocket.OPEN) {
+            userSocket.send(JSON.stringify({
+                'type': 'request_user_stats'
+            }));
+        }
+    }, 30000);
+</script>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "notifications/email/generic.html" %}
+
+{% block extra_content %}
+<div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #0ea5e9;">
+    <h3 style="margin: 0 0 15px 0; color: #0c4a6e; display: flex; align-items: center; gap: 8px;">
+        🎮 Game Details
+    </h3>
+    
+    {% if notification.extra_data.result == 'win' %}
+    <div style="background: #dcfce7; border: 1px solid #16a34a; border-radius: 6px; padding: 15px; margin-bottom: 15px;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+            <span style="font-size: 24px;">🎉</span>
+            <span style="font-weight: 600; color: #15803d; font-size: 18px;">Congratulations! You Won!</span>
+        </div>
+        <p style="margin: 0; color: #166534;">
+            You successfully predicted the winning color and earned <strong>${{ notification.extra_data.amount }}</strong>!
+        </p>
+    </div>
+    {% else %}
+    <div style="background: #fef2f2; border: 1px solid #ef4444; border-radius: 6px; padding: 15px; margin-bottom: 15px;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+            <span style="font-size: 24px;">😔</span>
+            <span style="font-weight: 600; color: #dc2626; font-size: 18px;">Better Luck Next Time</span>
+        </div>
+        <p style="margin: 0; color: #991b1b;">
+            Your prediction didn't match this time. You lost <strong>${{ notification.extra_data.amount }}</strong>.
+        </p>
+    </div>
+    {% endif %}
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+        <div style="text-align: center; padding: 10px; background: rgba(255, 255, 255, 0.7); border-radius: 6px;">
+            <div style="font-size: 12px; color: #666; text-transform: uppercase; font-weight: 500;">Game Round</div>
+            <div style="font-size: 18px; font-weight: 600; color: #333;">#{{ notification.extra_data.game_round_id }}</div>
+        </div>
+        <div style="text-align: center; padding: 10px; background: rgba(255, 255, 255, 0.7); border-radius: 6px;">
+            <div style="font-size: 12px; color: #666; text-transform: uppercase; font-weight: 500;">Winning Color</div>
+            <div style="font-size: 18px; font-weight: 600; color: #333; text-transform: capitalize;">
+                {% if notification.extra_data.winning_color == 'red' %}
+                    <span style="color: #dc2626;">🔴 Red</span>
+                {% elif notification.extra_data.winning_color == 'green' %}
+                    <span style="color: #16a34a;">🟢 Green</span>
+                {% elif notification.extra_data.winning_color == 'violet' %}
+                    <span style="color: #7c3aed;">🟣 Violet</span>
+                {% elif notification.extra_data.winning_color == 'blue' %}
+                    <span style="color: #2563eb;">🔵 Blue</span>
+                {% else %}
+                    {{ notification.extra_data.winning_color }}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    {% if notification.extra_data.result == 'win' %}
+    <div style="text-align: center; margin-top: 20px;">
+        <p style="margin: 0; color: #059669; font-weight: 500;">
+            🎯 Great prediction! Keep up the winning streak!
+        </p>
+    </div>
+    {% else %}
+    <div style="text-align: center; margin-top: 20px;">
+        <p style="margin: 0; color: #6b7280; font-weight: 500;">
+            💪 Don't give up! The next round could be your big win!
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="http://{{ request.get_host }}/room/main/" style="
+        display: inline-block;
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        color: white;
+        padding: 15px 30px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 16px;
+        margin-right: 10px;
+        transition: transform 0.2s ease;
+    ">🎮 Play Another Round</a>
+    
+    <a href="http://{{ request.get_host }}/history/" style="
+        display: inline-block;
+        background: rgba(102, 126, 234, 0.1);
+        color: #667eea;
+        padding: 15px 30px;
+        border: 2px solid #667eea;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 16px;
+        transition: all 0.2s ease;
+    ">📊 View History</a>
+</div>
+{% endblock %}

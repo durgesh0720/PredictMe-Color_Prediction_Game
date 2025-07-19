@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Minimal Login Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 50px; 
+            background: #f0f0f0;
+        }
+        .container { 
+            max-width: 400px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 5px;
+        }
+        input, button { 
+            width: 100%; 
+            padding: 10px; 
+            margin: 5px 0; 
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        button { 
+            background: #007cba; 
+            color: white; 
+            cursor: pointer;
+        }
+        .message { 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 3px;
+        }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Minimal Login Test</h1>
+        <p>This is a simplified login page to test Chrome compatibility.</p>
+        
+        <!-- Messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="message {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        
+        <!-- Login Form -->
+        <form method="post">
+            {% csrf_token %}
+            <input type="text" name="username_or_email" placeholder="Username or Email" required 
+                   value="{{ username_or_email|default:'' }}">
+            <input type="password" name="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+        
+        <hr>
+        <p><strong>Test Users:</strong></p>
+        <ul>
+            <li>Username: <code>testuser</code> | Password: <code>testpass123</code></li>
+        </ul>
+        
+        <hr>
+        <p><strong>Navigation:</strong></p>
+        <a href="/">← Home</a> | 
+        <a href="/register/">Register</a> | 
+        <a href="/test-chrome/">Chrome Test</a>
+        
+        <hr>
+        <p><strong>Browser Info:</strong></p>
+        <div id="browser-info">Loading...</div>
+    </div>
+
+    <script>
+        // Simple browser detection
+        const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+        const isFirefox = /Firefox/.test(navigator.userAgent);
+        const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+        
+        document.getElementById('browser-info').innerHTML = `
+            <strong>Browser:</strong> ${isChrome ? 'Chrome' : isFirefox ? 'Firefox' : isSafari ? 'Safari' : 'Other'}<br>
+            <strong>User Agent:</strong> ${navigator.userAgent}<br>
+            <strong>Page Loaded:</strong> ✅ Successfully
+        `;
+        
+        console.log('Minimal login page loaded successfully');
+        console.log('Browser:', {chrome: isChrome, firefox: isFirefox, safari: isSafari});
+    </script>
+</body>
+</html>

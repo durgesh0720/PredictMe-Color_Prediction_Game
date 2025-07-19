@@ -1,0 +1,821 @@
+{% extends 'admin/modern_base.html' %}
+{% load math_filters %}
+
+{% block title %}Financial Management{% endblock %}
+{% block page_title %}Financial Management{% endblock %}
+
+{% block extra_css %}
+<style>
+    .financial-header {
+        background: linear-gradient(135deg, var(--success), var(--info));
+        color: white;
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    
+    .header-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .header-stat {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: var(--radius);
+        padding: 1rem;
+        text-align: center;
+    }
+    
+    .header-stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+    
+    .header-stat-label {
+        font-size: 0.875rem;
+        opacity: 0.9;
+    }
+    
+    .financial-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .revenue-chart-card {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+        overflow: hidden;
+    }
+    
+    .chart-header {
+        background: var(--bg-main);
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: between;
+        align-items: center;
+    }
+    
+    .chart-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .chart-controls {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .chart-btn {
+        padding: 0.5rem 1rem;
+        border: 1px solid var(--border);
+        background: var(--bg-card);
+        color: var(--text-secondary);
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.875rem;
+    }
+    
+    .chart-btn.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+    
+    .chart-container {
+        padding: 1.5rem;
+        height: 300px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        color: var(--text-light);
+        font-size: 1.125rem;
+    }
+    
+    .quick-stats {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .stat-card {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+    }
+    
+    .stat-card.revenue::before { background: var(--success); }
+    .stat-card.expenses::before { background: var(--danger); }
+    .stat-card.profit::before { background: var(--info); }
+    .stat-card.transactions::before { background: var(--warning); }
+    
+    .stat-header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1rem;
+    }
+    
+    .stat-card.revenue .stat-icon { background: var(--success); }
+    .stat-card.expenses .stat-icon { background: var(--danger); }
+    .stat-card.profit .stat-icon { background: var(--info); }
+    .stat-card.transactions .stat-icon { background: var(--warning); }
+    
+    .stat-trend {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: var(--radius);
+        font-weight: 500;
+    }
+    
+    .trend-up {
+        background: #dcfce7;
+        color: #166534;
+    }
+    
+    .trend-down {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+    
+    .stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-label {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-description {
+        color: var(--text-light);
+        font-size: 0.75rem;
+    }
+    
+    .transactions-section {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+        overflow: hidden;
+    }
+    
+    .section-header {
+        background: var(--bg-main);
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .section-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .section-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+    
+    .filter-select {
+        padding: 0.5rem 1rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--bg-card);
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+    
+    .transactions-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .transactions-table th,
+    .transactions-table td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid var(--border-light);
+    }
+    
+    .transactions-table th {
+        background: var(--bg-main);
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .transactions-table td {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+    
+    .transactions-table tr:hover {
+        background: var(--bg-main);
+    }
+    
+    .transaction-type {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .type-icon {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.75rem;
+    }
+    
+    .type-deposit .type-icon { background: var(--success); }
+    .type-withdrawal .type-icon { background: var(--danger); }
+    .type-bet .type-icon { background: var(--info); }
+    .type-win .type-icon { background: var(--warning); }
+    
+    .amount-positive {
+        color: var(--success);
+        font-weight: 600;
+    }
+    
+    .amount-negative {
+        color: var(--danger);
+        font-weight: 600;
+    }
+    
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .status-completed {
+        background: #dcfce7;
+        color: #166534;
+    }
+    
+    .status-pending {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    
+    .status-failed {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: var(--text-light);
+    }
+    
+    .empty-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.3;
+    }
+    
+    @media (max-width: 1024px) {
+        .financial-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .header-stats {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .section-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .transactions-table {
+            font-size: 0.75rem;
+        }
+        
+        .transactions-table th,
+        .transactions-table td {
+            padding: 0.75rem 0.5rem;
+        }
+
+        .transactions-table {
+            min-width: 600px; /* Prevent table from getting too cramped */
+        }
+
+        .transaction-type {
+            flex-direction: column;
+            gap: 0.25rem;
+            align-items: center;
+        }
+
+        .type-icon {
+            width: 18px;
+            height: 18px;
+            font-size: 0.625rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .financial-header {
+            padding: 1rem 0.75rem;
+        }
+
+        .header-stats {
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
+
+        .financial-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .transactions-table {
+            min-width: 500px;
+            font-size: 0.625rem;
+        }
+
+        .transactions-table th,
+        .transactions-table td {
+            padding: 0.5rem 0.25rem;
+        }
+    }
+
+    /* Table Responsive Container */
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: var(--radius-lg);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Financial Header -->
+<div class="financial-header">
+    <h2>Financial Overview</h2>
+    <p>Monitor revenue, expenses, and financial performance</p>
+    <div class="header-stats">
+        <div class="header-stat">
+            <div class="header-stat-value">₹{{ total_revenue|default:"0" }}</div>
+            <div class="header-stat-label">Total Revenue</div>
+        </div>
+        <div class="header-stat">
+            <div class="header-stat-value">₹{{ total_expenses|default:"0" }}</div>
+            <div class="header-stat-label">Total Expenses</div>
+        </div>
+        <div class="header-stat">
+            <div class="header-stat-value">₹{{ net_profit|default:"0" }}</div>
+            <div class="header-stat-label">Net Profit</div>
+        </div>
+        <div class="header-stat">
+            <div class="header-stat-value">{{ total_transactions|default:"0" }}</div>
+            <div class="header-stat-label">Transactions</div>
+        </div>
+    </div>
+</div>
+
+<!-- Financial Grid -->
+<div class="financial-grid">
+    <!-- Revenue Chart -->
+    <div class="revenue-chart-card">
+        <div class="chart-header">
+            <h3 class="chart-title">
+                <i class="fas fa-chart-line"></i>
+                Revenue Trends
+            </h3>
+            <div class="chart-controls">
+                <button class="chart-btn active">7D</button>
+                <button class="chart-btn">30D</button>
+                <button class="chart-btn">90D</button>
+            </div>
+        </div>
+        <div class="chart-container">
+            <i class="fas fa-chart-area"></i>
+            Revenue chart will be implemented here
+        </div>
+    </div>
+    
+    <!-- Quick Stats -->
+    <div class="quick-stats">
+        <div class="stat-card revenue">
+            <div class="stat-header">
+                <div class="stat-icon">
+                    <i class="fas fa-arrow-up"></i>
+                </div>
+                <div class="stat-trend trend-up">
+                    <i class="fas fa-arrow-up"></i> +12.5%
+                </div>
+            </div>
+            <div class="stat-value">₹{{ daily_revenue|default:"0" }}</div>
+            <div class="stat-label">Today's Revenue</div>
+            <div class="stat-description">Compared to yesterday</div>
+        </div>
+        
+        <div class="stat-card expenses">
+            <div class="stat-header">
+                <div class="stat-icon">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+                <div class="stat-trend trend-down">
+                    <i class="fas fa-arrow-down"></i> -3.2%
+                </div>
+            </div>
+            <div class="stat-value">₹{{ daily_expenses|default:"0" }}</div>
+            <div class="stat-label">Today's Expenses</div>
+            <div class="stat-description">Payouts and costs</div>
+        </div>
+        
+        <div class="stat-card profit">
+            <div class="stat-header">
+                <div class="stat-icon">
+                    <i class="fas fa-chart-pie"></i>
+                </div>
+                <div class="stat-trend trend-up">
+                    <i class="fas fa-arrow-up"></i> +8.7%
+                </div>
+            </div>
+            <div class="stat-value">₹{{ daily_profit|default:"0" }}</div>
+            <div class="stat-label">Today's Profit</div>
+            <div class="stat-description">Net earnings</div>
+        </div>
+        
+        <div class="stat-card transactions">
+            <div class="stat-header">
+                <div class="stat-icon">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+                <div class="stat-trend trend-up">
+                    <i class="fas fa-arrow-up"></i> +15.3%
+                </div>
+            </div>
+            <div class="stat-value">{{ daily_transactions|default:"0" }}</div>
+            <div class="stat-label">Today's Transactions</div>
+            <div class="stat-description">All financial activities</div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Transactions -->
+<div class="transactions-section">
+    <div class="section-header">
+        <h3 class="section-title">
+            <i class="fas fa-list"></i>
+            Recent Transactions
+        </h3>
+        <div class="section-actions">
+            <select class="filter-select">
+                <option value="">All Types</option>
+                <option value="deposit">Deposits</option>
+                <option value="withdrawal">Withdrawals</option>
+                <option value="bet">Bets</option>
+                <option value="win">Winnings</option>
+            </select>
+            <button class="btn-sm btn-primary" onclick="refreshTransactions()">
+                <i class="fas fa-sync-alt"></i>
+                Refresh
+            </button>
+        </div>
+    </div>
+    
+    {% if recent_transactions %}
+    <div class="table-responsive">
+        <table class="transactions-table">
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>User</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for transaction in recent_transactions %}
+            <tr>
+                <td>
+                    <div class="transaction-type type-{{ transaction.transaction_type }}">
+                        <div class="type-icon">
+                            {% if transaction.transaction_type == 'deposit' %}
+                                <i class="fas fa-plus"></i>
+                            {% elif transaction.transaction_type == 'withdrawal' %}
+                                <i class="fas fa-minus"></i>
+                            {% elif transaction.transaction_type == 'bet' %}
+                                <i class="fas fa-dice"></i>
+                            {% else %}
+                                <i class="fas fa-trophy"></i>
+                            {% endif %}
+                        </div>
+                        <span>{{ transaction.transaction_type|title }}</span>
+                    </div>
+                </td>
+                <td>{{ transaction.player.username|default:"System" }}</td>
+                <td>
+                    <span class="{% if transaction.amount > 0 %}amount-positive{% else %}amount-negative{% endif %}">
+                        {% if transaction.amount > 0 %}+{% endif %}₹{{ transaction.amount }}
+                    </span>
+                </td>
+                <td>
+                    <span class="status-badge status-{{ transaction.status|default:'completed' }}">
+                        {{ transaction.status|default:"Completed" }}
+                    </span>
+                </td>
+                <td>{{ transaction.created_at|date:"M d, H:i" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">
+            <i class="fas fa-receipt"></i>
+        </div>
+        <h3>No Transactions</h3>
+        <p>No recent financial transactions found.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Quick Actions -->
+<div class="d-flex gap-2 mt-4">
+    <a href="{% url 'admin_master_wallet' %}" class="btn btn-primary">
+        <i class="fas fa-wallet"></i> Master Wallet
+    </a>
+    <a href="{% url 'admin_reports' %}" class="btn btn-secondary">
+        <i class="fas fa-chart-bar"></i> Detailed Reports
+    </a>
+    <button class="btn btn-secondary" onclick="exportFinancialData()">
+        <i class="fas fa-download"></i> Export Data
+    </button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // WebSocket connection for real-time financial updates
+    let financialSocket = null;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+
+    function initFinancialWebSocket() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/control-panel/financial/`;
+
+        financialSocket = new WebSocket(wsUrl);
+
+        financialSocket.onopen = function(event) {
+            console.log('Financial WebSocket connected');
+            reconnectAttempts = 0;
+            updateConnectionStatus(true);
+        };
+
+        financialSocket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            handleFinancialUpdate(data);
+        };
+
+        financialSocket.onclose = function(event) {
+            console.log('Financial WebSocket disconnected');
+            updateConnectionStatus(false);
+
+            // Attempt to reconnect
+            if (reconnectAttempts < maxReconnectAttempts) {
+                setTimeout(() => {
+                    reconnectAttempts++;
+                    initFinancialWebSocket();
+                }, 3000);
+            }
+        };
+
+        financialSocket.onerror = function(error) {
+            console.error('Financial WebSocket error:', error);
+        };
+    }
+
+    function handleFinancialUpdate(data) {
+        switch(data.type) {
+            case 'financial_stats_update':
+                updateFinancialStats(data.stats);
+                break;
+            case 'transaction_update':
+                updateTransactionList(data.transactions);
+                break;
+            default:
+                console.log('Unknown financial update type:', data.type);
+        }
+    }
+
+    function updateFinancialStats(stats) {
+        // Update revenue statistics
+        if (stats.total_revenue !== undefined) {
+            const revenueEl = document.querySelector('.stat-card:nth-child(1) .stat-number');
+            if (revenueEl) revenueEl.textContent = `₹${stats.total_revenue}`;
+        }
+
+        if (stats.total_deposits !== undefined) {
+            const depositsEl = document.querySelector('.stat-card:nth-child(2) .stat-number');
+            if (depositsEl) depositsEl.textContent = `₹${stats.total_deposits}`;
+        }
+
+        if (stats.total_withdrawals !== undefined) {
+            const withdrawalsEl = document.querySelector('.stat-card:nth-child(3) .stat-number');
+            if (withdrawalsEl) withdrawalsEl.textContent = `₹${stats.total_withdrawals}`;
+        }
+
+        if (stats.profit_margin !== undefined) {
+            const profitEl = document.querySelector('.stat-card:nth-child(4) .stat-number');
+            if (profitEl) profitEl.textContent = `${stats.profit_margin}%`;
+        }
+    }
+
+    function updateConnectionStatus(connected) {
+        const refreshBtn = document.querySelector('button[onclick="refreshTransactions()"]');
+        if (refreshBtn) {
+            if (connected) {
+                refreshBtn.innerHTML = '<i class="fas fa-wifi"></i> Connected';
+                refreshBtn.className = 'btn-sm btn-success';
+            } else {
+                refreshBtn.innerHTML = '<i class="fas fa-wifi"></i> Reconnecting...';
+                refreshBtn.className = 'btn-sm btn-warning';
+            }
+        }
+    }
+
+    function refreshTransactions() {
+        if (financialSocket && financialSocket.readyState === WebSocket.OPEN) {
+            financialSocket.send(JSON.stringify({
+                'type': 'request_financial_update'
+            }));
+            showSuccessMessage('Financial data refreshed via WebSocket');
+        } else {
+            console.log('WebSocket not connected, attempting to reconnect...');
+            initFinancialWebSocket();
+        }
+    }
+
+    function exportFinancialData() {
+        // Create comprehensive financial export
+        const transactions = Array.from(document.querySelectorAll('.transaction-table tbody tr')).map(row => {
+            const cells = row.querySelectorAll('td');
+            return {
+                date: cells[0]?.textContent?.trim() || '',
+                type: cells[1]?.textContent?.trim() || '',
+                user: cells[2]?.textContent?.trim() || '',
+                amount: cells[3]?.textContent?.trim() || '',
+                status: cells[4]?.textContent?.trim() || ''
+            };
+        });
+
+        if (transactions.length === 0) {
+            showErrorMessage('No financial data to export');
+            return;
+        }
+
+        const csvContent = [
+            ['Date', 'Type', 'User', 'Amount', 'Status'],
+            ...transactions.map(t => [t.date, t.type, t.user, t.amount, t.status])
+        ].map(row => row.join(',')).join('\\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `financial_report_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        showSuccessMessage('Financial data exported successfully');
+    }
+
+    // Chart period selection with real functionality
+    document.querySelectorAll('.chart-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.chart-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+
+            const period = this.dataset.period;
+            updateChartPeriod(period);
+        });
+    });
+
+    function updateChartPeriod(period) {
+        if (financialSocket && financialSocket.readyState === WebSocket.OPEN) {
+            financialSocket.send(JSON.stringify({
+                'type': 'request_chart_data',
+                'period': period
+            }));
+        }
+
+        showSuccessMessage(`Chart updated for ${period} period`);
+    }
+
+    function showSuccessMessage(message) {
+        const notification = document.createElement('div');
+        notification.className = 'alert alert-success';
+        notification.style.position = 'fixed';
+        notification.style.top = '20px';
+        notification.style.right = '20px';
+        notification.style.zIndex = '9999';
+        notification.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
+
+        document.body.appendChild(notification);
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+
+    function showErrorMessage(message) {
+        const notification = document.createElement('div');
+        notification.className = 'alert alert-danger';
+        notification.style.position = 'fixed';
+        notification.style.top = '20px';
+        notification.style.right = '20px';
+        notification.style.zIndex = '9999';
+        notification.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
+
+        document.body.appendChild(notification);
+        setTimeout(() => {
+            notification.remove();
+        }, 5000);
+    }
+
+    // Initialize WebSocket connection when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        initFinancialWebSocket();
+    });
+
+    // Request updated data every 30 seconds via WebSocket instead of page reload
+    setInterval(() => {
+        if (financialSocket && financialSocket.readyState === WebSocket.OPEN) {
+            financialSocket.send(JSON.stringify({
+                'type': 'request_financial_update'
+            }));
+        }
+    }, 30000);
+</script>
+{% endblock %}

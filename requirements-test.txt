@@ -1,0 +1,136 @@
+# Testing Requirements for Color Prediction Game
+# Install with: pip install -r requirements-test.txt
+
+# Core testing framework
+pytest>=7.0.0
+pytest-django>=4.5.0
+pytest-cov>=4.0.0
+pytest-xdist>=3.0.0  # For parallel test execution
+pytest-mock>=3.10.0
+
+# Coverage reporting
+coverage>=7.0.0
+coverage[toml]>=7.0.0
+
+# Performance testing
+pytest-benchmark>=4.0.0
+memory-profiler>=0.60.0
+psutil>=5.9.0
+
+# Security testing
+bandit>=1.7.0  # Security linter
+safety>=2.3.0  # Dependency vulnerability scanner
+
+# Load testing
+locust>=2.14.0  # For load testing (optional)
+
+# Database testing
+pytest-factoryboy>=2.5.0  # Factory pattern for test data
+faker>=18.0.0  # Generate fake data
+
+# Mocking and fixtures
+responses>=0.23.0  # Mock HTTP requests
+freezegun>=1.2.0  # Mock datetime
+factory-boy>=3.2.0  # Test data factories
+
+# Linting and code quality
+flake8>=6.0.0
+black>=23.0.0
+isort>=5.12.0
+mypy>=1.0.0
+
+# Documentation testing
+sphinx>=6.0.0  # For documentation
+sphinx-rtd-theme>=1.2.0
+
+# Additional utilities
+tox>=4.0.0  # Test automation
+pre-commit>=3.0.0  # Git hooks for quality checks
+
+# Django-specific testing
+django-test-plus>=2.2.0  # Enhanced Django testing
+django-webtest>=1.9.0  # WebTest integration
+model-bakery>=1.10.0  # Alternative to factory-boy
+
+# API testing
+requests>=2.28.0
+httpx>=0.24.0  # Modern HTTP client
+
+# WebSocket testing
+websockets>=11.0.0
+channels-redis>=4.0.0  # For testing WebSocket with Redis
+
+# Time and date testing
+python-dateutil>=2.8.0
+pytz>=2023.3
+
+# Debugging and profiling
+ipdb>=0.13.0  # Enhanced debugger
+line-profiler>=4.0.0  # Line-by-line profiling
+py-spy>=0.3.0  # Sampling profiler
+
+# Reporting
+pytest-html>=3.1.0  # HTML test reports
+pytest-json-report>=1.5.0  # JSON test reports
+allure-pytest>=2.12.0  # Allure test reporting
+
+# Parallel execution
+pytest-parallel>=0.1.0
+pytest-xvfb>=3.0.0  # For headless browser testing (if needed)
+
+# Environment management
+python-dotenv>=1.0.0  # For .env file support in tests
+
+# Data validation
+cerberus>=1.3.0  # Schema validation
+jsonschema>=4.17.0  # JSON schema validation
+
+# Network testing
+responses>=0.23.0  # Mock HTTP responses
+httpretty>=1.1.0  # HTTP request mocking
+vcr.py>=4.2.0  # Record and replay HTTP interactions
+
+# File and path utilities
+pathlib2>=2.3.0  # Enhanced path handling (Python < 3.4)
+tempfile>=1.0  # Temporary file handling
+
+# Assertion libraries
+assertpy>=1.1  # Fluent assertions
+sure>=2.0.0  # Alternative assertion library
+
+# Test data management
+mimesis>=7.0.0  # Advanced fake data generation
+hypothesis>=6.70.0  # Property-based testing
+
+# Performance monitoring
+py-cpuinfo>=9.0.0  # CPU information
+pympler>=0.9  # Memory profiling
+
+# Configuration testing
+dynaconf>=3.1.0  # Configuration management testing
+pydantic>=1.10.0  # Data validation and settings
+
+# Async testing
+pytest-asyncio>=0.21.0  # Async test support
+aioresponses>=0.7.0  # Mock aiohttp responses
+
+# Database testing utilities
+pytest-postgresql>=4.1.0  # PostgreSQL testing
+pytest-redis>=3.0.0  # Redis testing
+
+# Security and compliance
+pip-audit>=2.5.0  # Audit pip packages for vulnerabilities
+semgrep>=1.15.0  # Static analysis security scanner
+
+# Documentation and examples
+sphinx-autodoc-typehints>=1.22.0
+sphinx-copybutton>=0.5.0
+
+# CI/CD integration
+pytest-github-actions-annotate-failures>=0.1.0
+pytest-codeowners>=0.1.0
+
+# Quality gates
+pytest-clarity>=1.0.0  # Better test failure output
+pytest-sugar>=0.9.0  # Enhanced test output
+pytest-instafail>=0.4.0  # Instant failure reporting

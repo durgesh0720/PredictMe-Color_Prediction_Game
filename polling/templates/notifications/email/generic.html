@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ notification.title }} - {{ site_name }}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 30px 20px;
+        }
+        .notification-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .priority-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        .priority-urgent {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        .priority-high {
+            background: #fef3c7;
+            color: #d97706;
+        }
+        .priority-normal {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+        .priority-low {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+        .message {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #555;
+            margin-bottom: 20px;
+        }
+        .metadata {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+        .metadata-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .metadata-label {
+            font-weight: 500;
+            color: #666;
+        }
+        .metadata-value {
+            color: #333;
+        }
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid #e5e7eb;
+        }
+        .footer p {
+            margin: 0;
+            font-size: 14px;
+            color: #666;
+        }
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            margin: 15px 0;
+            transition: transform 0.2s ease;
+        }
+        .button:hover {
+            transform: translateY(-1px);
+            color: white;
+        }
+        @media (max-width: 600px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+            }
+            .content {
+                padding: 20px 15px;
+            }
+            .header {
+                padding: 20px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 {{ site_name }}</h1>
+        </div>
+        
+        <div class="content">
+            <div class="notification-title">
+                {{ notification.title }}
+                <span class="priority-badge priority-{{ notification.priority }}">
+                    {{ notification.get_priority_display }}
+                </span>
+            </div>
+            
+            <div class="message">
+                {% if notification.html_message %}
+                    {{ notification.html_message|safe }}
+                {% else %}
+                    {{ notification.message|linebreaks }}
+                {% endif %}
+            </div>
+            
+            {% if notification.extra_data %}
+            <div class="metadata">
+                <div class="metadata-item">
+                    <span class="metadata-label">📅 Date:</span>
+                    <span class="metadata-value">{{ notification.created_at|date:"F d, Y g:i A" }}</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">📂 Category:</span>
+                    <span class="metadata-value">{{ notification.notification_type.get_category_display }}</span>
+                </div>
+                {% if notification.extra_data.game_round_id %}
+                <div class="metadata-item">
+                    <span class="metadata-label">🎮 Game Round:</span>
+                    <span class="metadata-value">#{{ notification.extra_data.game_round_id }}</span>
+                </div>
+                {% endif %}
+                {% if notification.extra_data.amount %}
+                <div class="metadata-item">
+                    <span class="metadata-label">💰 Amount:</span>
+                    <span class="metadata-value">${{ notification.extra_data.amount }}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="http://{{ request.get_host }}/" class="button">
+                    🎮 Play Now
+                </a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>
+                Hello {{ user.display_name }}! This notification was sent to {{ user.email }}.
+            </p>
+            <p style="margin-top: 10px;">
+                <a href="http://{{ request.get_host }}/profile/">Manage Notification Preferences</a> |
+                <a href="http://{{ request.get_host }}/">Visit Game</a>
+            </p>
+            <p style="margin-top: 15px; font-size: 12px; color: #999;">
+                © 2025 {{ site_name }}. All rights reserved.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

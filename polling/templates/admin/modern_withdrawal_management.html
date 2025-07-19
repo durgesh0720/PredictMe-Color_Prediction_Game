@@ -1,0 +1,792 @@
+{% extends 'admin/modern_base.html' %}
+
+{% block title %}Withdrawal Management - Admin Panel{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary: #667eea;
+        --primary-dark: #5a67d8;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --info: #3b82f6;
+        --bg-card: #ffffff;
+        --bg-secondary: #f8fafc;
+        --text-primary: #1e293b;
+        --text-secondary: #64748b;
+        --text-muted: #94a3b8;
+        --border: #e2e8f0;
+        --radius: 8px;
+        --radius-lg: 12px;
+        --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    .withdrawal-header {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: var(--radius-lg);
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .withdrawal-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: var(--bg-card);
+        padding: 1.5rem;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border);
+        text-align: center;
+        transition: transform 0.2s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .stat-card.pending .stat-value { color: var(--warning); }
+    .stat-card.approved .stat-value { color: var(--success); }
+    .stat-card.rejected .stat-value { color: var(--danger); }
+    .stat-card.total .stat-value { color: var(--info); }
+
+    .filters-section {
+        background: var(--bg-card);
+        padding: 1.5rem;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow);
+        margin-bottom: 2rem;
+        border: 1px solid var(--border);
+    }
+
+    .filters-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        align-items: end;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .filter-label {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--text-primary);
+    }
+
+    .filter-input {
+        padding: 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        font-size: 0.875rem;
+        transition: border-color 0.2s ease;
+    }
+
+    .filter-input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .filter-btn {
+        padding: 0.75rem 1.5rem;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: var(--radius);
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+
+    .filter-btn:hover {
+        background: var(--primary-dark);
+    }
+
+    .withdrawals-table {
+        width: 100%;
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border);
+    }
+
+    .withdrawals-table th,
+    .withdrawals-table td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .withdrawals-table th {
+        background: var(--bg-secondary);
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .withdrawals-table tr:hover {
+        background: var(--bg-secondary);
+    }
+
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .status-pending {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .status-approved {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .status-rejected {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .status-processing {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn {
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: var(--radius);
+        font-size: 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .btn-approve {
+        background: var(--success);
+        color: white;
+    }
+
+    .btn-approve:hover {
+        background: #059669;
+        transform: translateY(-1px);
+    }
+
+    .btn-reject {
+        background: var(--danger);
+        color: white;
+    }
+
+    .btn-reject:hover {
+        background: #dc2626;
+        transform: translateY(-1px);
+    }
+
+    .btn-view {
+        background: var(--info);
+        color: white;
+    }
+
+    .btn-view:hover {
+        background: #2563eb;
+        transform: translateY(-1px);
+    }
+
+    .btn-complete {
+        background: #10b981;
+        color: white;
+    }
+
+    .btn-complete:hover {
+        background: #059669;
+        transform: translateY(-1px);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: var(--text-muted);
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.3;
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        margin-top: 1rem;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border);
+    }
+
+    .pagination-info {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+
+    .pagination-controls {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .pagination-btn {
+        padding: 0.5rem 1rem;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text-primary);
+        text-decoration: none;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+    }
+
+    .pagination-btn:hover {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    .pagination-btn.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    .pagination-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .withdrawal-header {
+            padding: 1.5rem 1rem;
+        }
+
+        .withdrawal-stats {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .filters-form {
+            grid-template-columns: 1fr;
+        }
+
+        .withdrawals-table {
+            font-size: 0.75rem;
+        }
+
+        .withdrawals-table th,
+        .withdrawals-table td {
+            padding: 0.75rem 0.5rem;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .pagination {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .pagination-controls {
+            justify-content: center;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .withdrawal-stats {
+            grid-template-columns: 1fr;
+        }
+
+        .stat-card {
+            padding: 1rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="withdrawal-header">
+    <h1>💰 Withdrawal Management</h1>
+    <p>Review and process user withdrawal requests</p>
+</div>
+
+<!-- Withdrawal Statistics -->
+<div class="withdrawal-stats">
+    <div class="stat-card pending">
+        <div class="stat-value">{{ pending_count }}</div>
+        <div class="stat-label">Pending Requests</div>
+    </div>
+    <div class="stat-card total">
+        <div class="stat-value">₹{{ pending_amount|floatformat:0 }}</div>
+        <div class="stat-label">Pending Amount</div>
+    </div>
+    <div class="stat-card approved">
+        <div class="stat-value">{{ approved_today }}</div>
+        <div class="stat-label">Approved Today</div>
+    </div>
+    <div class="stat-card rejected">
+        <div class="stat-value">{{ rejected_today }}</div>
+        <div class="stat-label">Rejected Today</div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filters-section">
+    <form method="GET" class="filters-form">
+        <div class="filter-group">
+            <label class="filter-label">Status</label>
+            <select name="status" class="filter-input">
+                <option value="">All Status</option>
+                <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+                <option value="approved" {% if request.GET.status == 'approved' %}selected{% endif %}>Approved</option>
+                <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>Rejected</option>
+                <option value="processing" {% if request.GET.status == 'processing' %}selected{% endif %}>Processing</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label class="filter-label">Player</label>
+            <input type="text" name="player" class="filter-input" placeholder="Username or email" value="{{ request.GET.player }}">
+        </div>
+        <div class="filter-group">
+            <label class="filter-label">Amount Range</label>
+            <input type="number" name="min_amount" class="filter-input" placeholder="Min amount" value="{{ request.GET.min_amount }}">
+        </div>
+        <div class="filter-group">
+            <label class="filter-label">Date From</label>
+            <input type="date" name="date_from" class="filter-input" value="{{ request.GET.date_from }}">
+        </div>
+        <div class="filter-group">
+            <button type="submit" class="filter-btn">🔍 Filter</button>
+        </div>
+    </form>
+</div>
+
+<!-- Withdrawals Table -->
+<div class="table-responsive">
+    {% if withdrawal_requests %}
+    <table class="withdrawals-table">
+        <thead>
+            <tr>
+                <th>Request ID</th>
+                <th>Player</th>
+                <th>Amount</th>
+                <th>Bank Details</th>
+                <th>Status</th>
+                <th>Requested</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for withdrawal in withdrawal_requests %}
+            <tr>
+                <td>
+                    <strong>#{{ withdrawal.id|slice:":8" }}</strong>
+                </td>
+                <td>
+                    <div>
+                        <strong>{{ withdrawal.player.username }}</strong><br>
+                        <small class="text-muted">{{ withdrawal.player.email }}</small>
+                    </div>
+                </td>
+                <td>
+                    <strong>₹{{ withdrawal.amount|floatformat:0 }}</strong>
+                </td>
+                <td>
+                    <div>
+                        <strong>{{ withdrawal.bank_name }}</strong><br>
+                        <small>{{ withdrawal.account_holder_name }}</small><br>
+                        <small class="text-muted">****{{ withdrawal.bank_account_number|slice:"-4:" }}</small>
+                    </div>
+                </td>
+                <td>
+                    <span class="status-badge status-{{ withdrawal.status }}">
+                        {{ withdrawal.get_status_display }}
+                    </span>
+                </td>
+                <td>
+                    <div>
+                        {{ withdrawal.created_at|date:"M d, Y" }}<br>
+                        <small class="text-muted">{{ withdrawal.created_at|time:"H:i" }}</small>
+                    </div>
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        {% if withdrawal.status == 'pending' %}
+                        <button class="btn btn-approve" onclick="approveWithdrawal('{{ withdrawal.id }}')">
+                            ✓ Approve
+                        </button>
+                        <button class="btn btn-reject" onclick="rejectWithdrawal('{{ withdrawal.id }}')">
+                            ✗ Reject
+                        </button>
+                        {% elif withdrawal.status == 'approved' %}
+                        <button class="btn btn-complete" onclick="completeWithdrawal('{{ withdrawal.id }}')">
+                            ✅ Mark Completed
+                        </button>
+                        {% endif %}
+                        <button class="btn btn-view" onclick="viewWithdrawal('{{ withdrawal.id }}')">
+                            👁 View
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">💰</div>
+        <h3>No Withdrawal Requests</h3>
+        <p>No withdrawal requests found matching your criteria.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Pagination -->
+{% if withdrawal_requests.has_other_pages %}
+<div class="pagination">
+    <div class="pagination-info">
+        Showing {{ withdrawal_requests.start_index }} to {{ withdrawal_requests.end_index }}
+        of {{ withdrawal_requests.paginator.count }} requests
+    </div>
+    <div class="pagination-controls">
+        {% if withdrawal_requests.has_previous %}
+        <a href="?page=1{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.player %}&player={{ request.GET.player }}{% endif %}" class="pagination-btn">First</a>
+        <a href="?page={{ withdrawal_requests.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.player %}&player={{ request.GET.player }}{% endif %}" class="pagination-btn">Previous</a>
+        {% endif %}
+
+        <span class="pagination-btn active">{{ withdrawal_requests.number }}</span>
+
+        {% if withdrawal_requests.has_next %}
+        <a href="?page={{ withdrawal_requests.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.player %}&player={{ request.GET.player }}{% endif %}" class="pagination-btn">Next</a>
+        <a href="?page={{ withdrawal_requests.paginator.num_pages }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.player %}&player={{ request.GET.player }}{% endif %}" class="pagination-btn">Last</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Withdrawal Detail Modal -->
+<div id="withdrawalModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Withdrawal Request Details</h3>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <!-- Content will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<!-- Rejection Reason Modal -->
+<div id="rejectionModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Reject Withdrawal Request</h3>
+            <button class="modal-close" onclick="closeRejectionModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="rejectionForm">
+                <div class="form-group">
+                    <label>Rejection Reason:</label>
+                    <textarea id="rejectionReason" rows="4" placeholder="Please provide a reason for rejection..." required></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeRejectionModal()">Cancel</button>
+                    <button type="submit" class="btn btn-reject">Reject Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentWithdrawalId = null;
+
+function approveWithdrawal(withdrawalId) {
+    if (confirm('Are you sure you want to approve this withdrawal? This will transfer real money to the user.')) {
+        fetch(`/control-panel/withdrawals/approve/${withdrawalId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                let message = data.message;
+                if (data.transfer_type === 'automatic') {
+                    message += `\n\n💰 ₹${data.amount} has been automatically transferred to the user's bank account via Razorpay.`;
+                } else if (data.transfer_type === 'manual') {
+                    message += `\n\n⚠️ Please manually transfer ₹${data.amount} to the user's bank account.`;
+                }
+                alert(message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while approving the withdrawal.');
+        });
+    }
+}
+
+function rejectWithdrawal(withdrawalId) {
+    currentWithdrawalId = withdrawalId;
+    const modal = document.getElementById('rejectionModal');
+    if (modal) {
+        modal.style.display = 'flex';
+    }
+}
+
+function closeRejectionModal() {
+    const modal = document.getElementById('rejectionModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    currentWithdrawalId = null;
+}
+
+document.getElementById('rejectionForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const reason = document.getElementById('rejectionReason').value;
+
+    if (!reason.trim()) {
+        alert('Please provide a rejection reason.');
+        return;
+    }
+
+    fetch(`/control-panel/withdrawals/reject/${currentWithdrawalId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reason: reason })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Withdrawal rejected successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while rejecting the withdrawal.');
+    });
+});
+
+function viewWithdrawal(withdrawalId) {
+    fetch(`/control-panel/withdrawals/detail/${withdrawalId}/`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modalBody = document.getElementById('modalBody');
+            const modal = document.getElementById('withdrawalModal');
+            if (modalBody && modal) {
+                modalBody.innerHTML = data.html;
+                modal.style.display = 'flex';
+            }
+        } else {
+            alert('Error loading withdrawal details: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while loading withdrawal details.');
+    });
+}
+
+function closeModal() {
+    const modal = document.getElementById('withdrawalModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function completeWithdrawal(withdrawalId) {
+    const bankReference = prompt('Enter bank transfer reference number (optional):');
+    const notes = prompt('Enter any additional notes (optional):');
+
+    if (confirm('Are you sure you want to mark this withdrawal as completed? This confirms that the money has been transferred to the user.')) {
+        fetch(`/control-panel/withdrawals/complete/${withdrawalId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                bank_reference: bankReference || '',
+                notes: notes || ''
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while completing the withdrawal.');
+        });
+    }
+}
+
+// Auto-refresh every 30 seconds
+setInterval(() => {
+    location.reload();
+}, 30000);
+</script>
+
+<style>
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: white;
+    border-radius: var(--radius-lg);
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-muted);
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    resize: vertical;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+}
+
+.btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+}
+
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--radius-lg);
+}
+
+.text-muted {
+    color: var(--text-muted);
+}
+</style>
+{% endblock %}

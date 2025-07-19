@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to {{ site_name }}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        .title {
+            color: #27ae60;
+            margin-bottom: 10px;
+        }
+        .welcome-box {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .features {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .feature-icon {
+            font-size: 1.5rem;
+            margin-right: 15px;
+            width: 30px;
+        }
+        .cta-button {
+            display: block;
+            background: #27ae60;
+            color: white;
+            text-decoration: none;
+            padding: 15px 25px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            margin: 30px auto;
+            width: 200px;
+            transition: background 0.3s;
+        }
+        .cta-button:hover {
+            background: #229954;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🎮</div>
+            <h1 class="title">{{ site_name }}</h1>
+            <h2>Welcome to the Game!</h2>
+        </div>
+        
+        <div class="welcome-box">
+            <h3>🎉 Welcome, {{ username }}!</h3>
+            <p>Your account has been successfully created and verified.</p>
+        </div>
+        
+        <p>Congratulations! You're now part of the {{ site_name }} community. Get ready for an exciting gaming experience with real money rewards!</p>
+        
+        <div class="features">
+            <h3>🚀 What You Can Do Now:</h3>
+            
+            <div class="feature-item">
+                <div class="feature-icon">💳</div>
+                <div>
+                    <strong>Deposit Money</strong><br>
+                    Add funds to your wallet using secure payment methods
+                </div>
+            </div>
+            
+            <div class="feature-item">
+                <div class="feature-icon">🎯</div>
+                <div>
+                    <strong>Place Bets</strong><br>
+                    Predict colors and win real money prizes
+                </div>
+            </div>
+            
+            <div class="feature-item">
+                <div class="feature-icon">💰</div>
+                <div>
+                    <strong>Win Real Money</strong><br>
+                    Earn cash rewards for correct predictions
+                </div>
+            </div>
+            
+            <div class="feature-item">
+                <div class="feature-icon">📊</div>
+                <div>
+                    <strong>Track Statistics</strong><br>
+                    Monitor your gaming performance and earnings
+                </div>
+            </div>
+            
+            <div class="feature-item">
+                <div class="feature-icon">🏆</div>
+                <div>
+                    <strong>Compete & Win</strong><br>
+                    Challenge other players and climb the leaderboard
+                </div>
+            </div>
+        </div>
+        
+        <a href="{{ login_url }}" class="cta-button">Start Playing Now</a>
+        
+        <div class="footer">
+            <p>Remember to play responsibly and only bet what you can afford to lose.</p>
+            <p>If you have any questions, our support team is here to help!</p>
+            <p><strong>Good luck and have fun! 🍀</strong></p>
+        </div>
+    </div>
+</body>
+</html>

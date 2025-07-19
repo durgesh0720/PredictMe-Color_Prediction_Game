@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login - Color Prediction Game</title>
+
+  <!-- Load the enhanced CSS framework -->
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+
+  <style>
+    /* Login Page Specific Styles */
+    body {
+      background: var(--primary-gradient);
+      margin: 0;
+      padding: var(--space-6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .login-container {
+      max-width: 480px;
+      width: 100%;
+      background: var(--background-primary);
+      border-radius: var(--border-radius-2xl);
+      padding: var(--space-10);
+      box-shadow: var(--shadow-2xl);
+      text-align: center;
+      border: 1px solid var(--border-color);
+    }
+
+    .login-header {
+      margin-bottom: var(--space-8);
+    }
+
+    .login-form {
+      text-align: left;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-4);
+      margin: var(--space-8) 0;
+    }
+
+    .feature-card {
+      padding: var(--space-4);
+      background: var(--background-secondary);
+      border-radius: var(--border-radius-lg);
+      text-align: center;
+      font-size: var(--text-sm);
+      border: 1px solid var(--border-color);
+      transition: var(--transition-smooth);
+    }
+
+    .feature-card:hover {
+      background: var(--background-tertiary);
+      transform: translateY(-2px);
+    }
+
+    .feature-icon {
+      font-size: var(--text-2xl);
+      margin-bottom: var(--space-2);
+      display: block;
+    }
+
+    .register-link {
+      margin-top: var(--space-6);
+      color: var(--text-secondary);
+      text-align: center;
+    }
+
+    .register-link a {
+      color: var(--primary-color);
+      text-decoration: none;
+      font-weight: var(--font-semibold);
+      transition: var(--transition-smooth);
+    }
+
+    .register-link a:hover {
+      color: var(--primary-hover);
+      text-decoration: underline;
+    }
+
+    /* Mobile Responsiveness */
+    @media (max-width: 768px) {
+      body {
+        padding: var(--space-4);
+      }
+
+      .login-container {
+        padding: var(--space-6);
+      }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-3);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <!-- Login Header -->
+    <div class="login-header">
+      <h1>🎮 Welcome Back</h1>
+      <p class="subtitle">Sign in to continue playing</p>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="messages-container" style="margin-bottom: var(--space-6);">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Login Form -->
+    <form method="post" class="login-form">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label for="username_or_email">Username or Email <span class="required">*</span></label>
+        <input type="text" id="username_or_email" name="username_or_email" required
+               value="{{ username_or_email|default:'' }}"
+               placeholder="Enter your username or email">
+        <div class="help-text">You can use either your username or email address</div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password <span class="required">*</span></label>
+        <input type="password" id="password" name="password" required
+               placeholder="Enter your password">
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lg btn-full">
+        🚀 Sign In
+      </button>
+    </form>
+
+    <!-- Features Grid -->
+    <div class="features-grid">
+      <div class="feature-card">
+        <span class="feature-icon">💰</span>
+        <div>Virtual Currency</div>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🏆</span>
+        <div>Leaderboards</div>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">⚡</span>
+        <div>Real-time Gaming</div>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🎯</span>
+        <div>2.5x Payouts</div>
+      </div>
+    </div>
+
+    <!-- Register Link -->
+    <div class="register-link">
+      Don't have an account? <a href="{% url 'register' %}">Create one here</a>
+    </div>
+
+    <!-- Back to Home -->
+    <a href="{% url 'index' %}" class="btn btn-outline btn-lg btn-full">← Back to Home</a>
+  </div>
+
+  <!-- Load the enhanced JavaScript framework -->
+  <script src="{% static 'js/main.js' %}"></script>
+
+  <script>
+    // Login page specific enhancements
+    document.addEventListener('DOMContentLoaded', function() {
+      // Auto-focus on the first input
+      document.getElementById('username_or_email').focus();
+
+      // Initialize enhanced UI components
+      if (window.ColorPredictionGame) {
+        // Add ripple effects to buttons and cards
+        document.querySelectorAll('.btn, .feature-card').forEach(element => {
+          ColorPredictionGame.utils.addRippleEffect(element);
+        });
+      }
+
+      // Enhanced form validation
+      const form = document.querySelector('form');
+      const usernameInput = document.getElementById('username_or_email');
+      const passwordInput = document.getElementById('password');
+
+      form.addEventListener('submit', function(e) {
+        const usernameOrEmail = usernameInput.value.trim();
+        const password = passwordInput.value;
+
+        if (!usernameOrEmail || !password) {
+          e.preventDefault();
+
+          // Remove existing error messages
+          const existingErrors = document.querySelectorAll('.alert-error');
+          existingErrors.forEach(error => error.remove());
+
+          // Show error message
+          const errorDiv = document.createElement('div');
+          errorDiv.className = 'alert alert-error';
+          errorDiv.textContent = 'Please fill in all required fields';
+
+          // Insert error message before the form
+          form.parentNode.insertBefore(errorDiv, form);
+
+          // Add error styling to empty fields
+          if (!usernameOrEmail) usernameInput.classList.add('input-error');
+          if (!password) passwordInput.classList.add('input-error');
+        }
+      });
+
+      // Remove error styling on input
+      [usernameInput, passwordInput].forEach(input => {
+        input.addEventListener('input', function() {
+          this.classList.remove('input-error');
+        });
+      });
+    });
+  </script>
+</body>
+</html>

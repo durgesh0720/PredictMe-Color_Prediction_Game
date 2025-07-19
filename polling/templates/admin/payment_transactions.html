@@ -1,0 +1,299 @@
+{% extends 'admin/modern_base.html' %}
+{% load static %}
+
+{% block title %}Payment Transactions - Admin Panel{% endblock %}
+
+{% block extra_css %}
+<style>
+    .transaction-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        background: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .transaction-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .transaction-id {
+        font-family: monospace;
+        font-size: 0.9em;
+        color: #666;
+    }
+    
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8em;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+    
+    .status-success { background: #d4edda; color: #155724; }
+    .status-pending { background: #fff3cd; color: #856404; }
+    .status-failed { background: #f8d7da; color: #721c24; }
+    
+    .transaction-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+    }
+    
+    .detail-item {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .detail-label {
+        font-size: 0.8em;
+        color: #666;
+        margin-bottom: 2px;
+    }
+    
+    .detail-value {
+        font-weight: 500;
+    }
+    
+    .filters-section {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    
+    .stat-value {
+        font-size: 2em;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .stat-label {
+        color: #666;
+        font-size: 0.9em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Payment Transactions</h1>
+        <div>
+            <button class="btn btn-primary" onclick="refreshTransactions()">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+            <button class="btn btn-secondary" onclick="exportTransactions()">
+                <i class="fas fa-download"></i> Export
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value text-success">₹{{ total_amount|default:"0" }}</div>
+            <div class="stat-label">Total Amount</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value text-primary">{{ total_transactions|default:"0" }}</div>
+            <div class="stat-label">Total Transactions</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value text-success">{{ successful_transactions|default:"0" }}</div>
+            <div class="stat-label">Successful</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value text-warning">{{ pending_transactions|default:"0" }}</div>
+            <div class="stat-label">Pending</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value text-danger">{{ failed_transactions|default:"0" }}</div>
+            <div class="stat-label">Failed</div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-section">
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Date From</label>
+                <input type="date" class="form-control" name="from_date" value="{{ request.GET.from_date }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Date To</label>
+                <input type="date" class="form-control" name="to_date" value="{{ request.GET.to_date }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select class="form-control" name="status">
+                    <option value="">All Statuses</option>
+                    <option value="success" {% if request.GET.status == 'success' %}selected{% endif %}>Success</option>
+                    <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="failed" {% if request.GET.status == 'failed' %}selected{% endif %}>Failed</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Type</label>
+                <select class="form-control" name="type">
+                    <option value="">All Types</option>
+                    <option value="deposit" {% if request.GET.type == 'deposit' %}selected{% endif %}>Deposit</option>
+                    <option value="withdrawal" {% if request.GET.type == 'withdrawal' %}selected{% endif %}>Withdrawal</option>
+                </select>
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter"></i> Apply Filters
+                </button>
+                <a href="{% url 'admin_payment_transactions' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Clear Filters
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Transactions List -->
+    <div class="transactions-list">
+        {% if transactions %}
+            {% for transaction in transactions %}
+            <div class="transaction-card">
+                <div class="transaction-header">
+                    <div>
+                        <div class="transaction-id">{{ transaction.id }}</div>
+                        <div class="fw-bold">{{ transaction.user.username|default:"Unknown User" }}</div>
+                    </div>
+                    <div>
+                        <span class="status-badge status-{{ transaction.status|default:'pending' }}">
+                            {{ transaction.status|default:"Pending"|title }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="transaction-details">
+                    <div class="detail-item">
+                        <div class="detail-label">Amount</div>
+                        <div class="detail-value text-success">₹{{ transaction.amount|default:"0" }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Type</div>
+                        <div class="detail-value">{{ transaction.type|default:"Unknown"|title }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Payment Method</div>
+                        <div class="detail-value">{{ transaction.payment_method|default:"Razorpay" }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Date</div>
+                        <div class="detail-value">{{ transaction.created_at|date:"M d, Y H:i" }}</div>
+                    </div>
+                    {% if transaction.razorpay_payment_id %}
+                    <div class="detail-item">
+                        <div class="detail-label">Razorpay ID</div>
+                        <div class="detail-value transaction-id">{{ transaction.razorpay_payment_id }}</div>
+                    </div>
+                    {% endif %}
+                    {% if transaction.description %}
+                    <div class="detail-item">
+                        <div class="detail-label">Description</div>
+                        <div class="detail-value">{{ transaction.description }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+            
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <nav aria-label="Transactions pagination">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.from_date %}&from_date={{ request.GET.from_date }}{% endif %}{% if request.GET.to_date %}&to_date={{ request.GET.to_date }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">Previous</a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if request.GET.from_date %}&from_date={{ request.GET.from_date }}{% endif %}{% if request.GET.to_date %}&to_date={{ request.GET.to_date }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.from_date %}&from_date={{ request.GET.from_date }}{% endif %}{% if request.GET.to_date %}&to_date={{ request.GET.to_date }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">Next</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">No Transactions Found</h4>
+                <p class="text-muted">No payment transactions match your current filters.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function refreshTransactions() {
+        location.reload();
+    }
+    
+    function exportTransactions() {
+        alert('Export functionality will be implemented');
+    }
+    
+    // Auto-refresh every 60 seconds
+    setInterval(refreshTransactions, 60000);
+    
+    // Set default dates if not provided
+    document.addEventListener('DOMContentLoaded', function() {
+        const fromDate = document.querySelector('input[name="from_date"]');
+        const toDate = document.querySelector('input[name="to_date"]');
+        
+        if (!fromDate.value) {
+            const date = new Date();
+            date.setDate(date.getDate() - 7);
+            fromDate.value = date.toISOString().split('T')[0];
+        }
+        
+        if (!toDate.value) {
+            const date = new Date();
+            toDate.value = date.toISOString().split('T')[0];
+        }
+    });
+</script>
+{% endblock %}

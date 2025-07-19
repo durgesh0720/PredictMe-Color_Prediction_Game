@@ -1,0 +1,616 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Payment Dashboard - Color Prediction Game{% endblock %}
+
+{% block extra_css %}
+<style>
+    .payment-dashboard {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .balance-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .balance-amount {
+        font-size: 3rem;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    
+    .payment-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .action-card {
+        background: white;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        border: 1px solid #e0e0e0;
+    }
+    
+    .action-card h3 {
+        color: #333;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .form-group {
+        margin-bottom: 15px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #555;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: border-color 0.3s;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+    
+    .btn {
+        padding: 12px 25px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        width: 100%;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-success {
+        background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+        color: white;
+    }
+    
+    .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(86, 171, 47, 0.4);
+    }
+    
+    .btn:disabled {
+        background: #bdc3c7;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    .transactions-section {
+        background: white;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .transaction-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .transaction-item:last-child {
+        border-bottom: none;
+    }
+    
+    .transaction-info {
+        flex: 1;
+    }
+    
+    .transaction-amount {
+        font-weight: bold;
+        font-size: 1.1rem;
+    }
+    
+    .transaction-amount.positive {
+        color: #27ae60;
+    }
+    
+    .transaction-amount.negative {
+        color: #e74c3c;
+    }
+    
+    .transaction-date {
+        color: #7f8c8d;
+        font-size: 0.9rem;
+    }
+    
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .status-completed {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status-pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .status-failed {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .alert {
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        display: none;
+    }
+    
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .loading {
+        display: none;
+        text-align: center;
+        padding: 20px;
+    }
+    
+    .limits-info {
+        background: #e3f2fd;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="payment-dashboard">
+    <!-- Balance Card -->
+    <div class="balance-card">
+        <h2>💰 Current Balance</h2>
+        <div class="balance-amount" id="current-balance">₹{{ player.balance }}</div>
+        <p>Available for betting and withdrawals</p>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alert-container"></div>
+
+    <!-- Payment Actions -->
+    <div class="payment-actions">
+        <!-- Deposit Card -->
+        <div class="action-card">
+            <h3>💳 Add Money</h3>
+            <div class="limits-info">
+                <strong>Limits:</strong> Min ₹{{ min_deposit }} - Max ₹{{ max_deposit }}
+            </div>
+            
+            <form id="deposit-form">
+                <div class="form-group">
+                    <label for="deposit-amount">Amount (₹)</label>
+                    <input type="number" id="deposit-amount" class="form-control" 
+                           min="{{ min_deposit }}" max="{{ max_deposit }}" step="1" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="deposit-description">Description (Optional)</label>
+                    <input type="text" id="deposit-description" class="form-control" 
+                           placeholder="Wallet top-up">
+                </div>
+                
+                <button type="submit" class="btn btn-primary" id="deposit-btn">
+                    💳 Pay with Razorpay
+                </button>
+            </form>
+        </div>
+
+        <!-- Withdrawal Card -->
+        <div class="action-card">
+            <h3>💸 Withdraw Money</h3>
+            <div class="limits-info">
+                <strong>Limits:</strong> Min ₹{{ min_withdrawal }} - Max ₹{{ max_withdrawal }}
+            </div>
+            
+            <form id="withdrawal-form">
+                <div class="form-group">
+                    <label for="withdrawal-amount">Amount (₹)</label>
+                    <input type="number" id="withdrawal-amount" class="form-control" 
+                           min="{{ min_withdrawal }}" max="{{ max_withdrawal }}" step="1" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="account-number">Account Number</label>
+                    <input type="text" id="account-number" class="form-control"
+                           placeholder="e.g., 123456789012"
+                           pattern="[0-9]{9,18}"
+                           title="Account number must be 9-18 digits" required>
+                    <small class="form-text text-muted">Enter your bank account number (9-18 digits)</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="routing-number">IFSC Code</label>
+                    <input type="text" id="routing-number" class="form-control"
+                           placeholder="e.g., SBIN0001234"
+                           pattern="[A-Z]{4}0[A-Z0-9]{6}"
+                           title="IFSC code must be 11 characters (e.g., SBIN0001234)"
+                           style="text-transform: uppercase;" required>
+                    <small class="form-text text-muted">Enter your bank's IFSC code (11 characters)</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="account-holder">Account Holder Name</label>
+                    <input type="text" id="account-holder" class="form-control"
+                           placeholder="e.g., John Doe"
+                           pattern="[A-Za-z\s\.\-']+"
+                           title="Name can only contain letters, spaces, dots, hyphens, and apostrophes" required>
+                    <small class="form-text text-muted">Enter the name as per your bank account</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="bank-name">Bank Name</label>
+                    <input type="text" id="bank-name" class="form-control"
+                           placeholder="e.g., State Bank of India" required>
+                    <small class="form-text text-muted">Enter your bank name</small>
+                </div>
+                
+                <button type="submit" class="btn btn-success" id="withdrawal-btn">
+                    💸 Request Withdrawal
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="transactions-section">
+        <h3>📊 Recent Transactions</h3>
+        
+        {% if recent_payments %}
+            {% for payment in recent_payments %}
+            <div class="transaction-item">
+                <div class="transaction-info">
+                    <div class="transaction-description">{{ payment.description }}</div>
+                    <div class="transaction-date">{{ payment.created_at|date:"M d, Y H:i" }}</div>
+                </div>
+                <div class="transaction-amount {% if payment.transaction_type == 'deposit' %}positive{% else %}negative{% endif %}">
+                    {% if payment.transaction_type == 'deposit' %}+{% else %}-{% endif %}₹{{ payment.amount }}
+                </div>
+                <div class="status-badge status-{{ payment.status }}">
+                    {{ payment.status }}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p style="text-align: center; color: #7f8c8d; padding: 20px;">
+                No transactions yet. Start by adding money to your wallet!
+            </p>
+        {% endif %}
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="{% url 'payment_history' %}" class="btn btn-primary" style="width: auto; padding: 10px 20px;">
+                View All Transactions
+            </a>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading" id="loading">
+        <p>🔄 Processing...</p>
+    </div>
+</div>
+
+<!-- Razorpay Checkout Script -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"
+        onload="console.log('Razorpay script loaded successfully')"
+        onerror="console.error('Failed to load Razorpay script')"></script>
+
+<!-- Fallback script loading -->
+<script>
+    // Fallback script loader
+    function loadRazorpayScript() {
+        return new Promise((resolve, reject) => {
+            if (typeof Razorpay !== 'undefined') {
+                resolve();
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.onload = () => {
+                console.log('Razorpay script loaded via fallback');
+                resolve();
+            };
+            script.onerror = () => {
+                console.error('Failed to load Razorpay script via fallback');
+                reject(new Error('Failed to load Razorpay script'));
+            };
+            document.head.appendChild(script);
+        });
+    }
+</script>
+
+<script>
+    // Configuration
+    const RAZORPAY_KEY_ID = '{{ razorpay_key_id }}';
+    const API_BASE_URL = '/api/payment/';
+
+    // Check if Razorpay is loaded
+    function checkRazorpayLoaded() {
+        if (typeof Razorpay === 'undefined') {
+            console.error('Razorpay SDK not loaded. Please check your internet connection.');
+            showAlert('Payment system not available. Please refresh the page and try again.');
+            return false;
+        }
+        return true;
+    }
+
+    // Wait for Razorpay to load
+    function waitForRazorpay(callback) {
+        if (typeof Razorpay !== 'undefined') {
+            callback();
+        } else {
+            setTimeout(() => waitForRazorpay(callback), 100);
+        }
+    }
+    
+    // DOM Elements
+    const depositForm = document.getElementById('deposit-form');
+    const withdrawalForm = document.getElementById('withdrawal-form');
+    const depositBtn = document.getElementById('deposit-btn');
+    const withdrawalBtn = document.getElementById('withdrawal-btn');
+    const loadingDiv = document.getElementById('loading');
+    const alertContainer = document.getElementById('alert-container');
+    const currentBalanceDiv = document.getElementById('current-balance');
+
+    // Utility Functions
+    function showAlert(message, type = 'error') {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type}`;
+        alertDiv.textContent = message;
+        alertDiv.style.display = 'block';
+        alertContainer.innerHTML = '';
+        alertContainer.appendChild(alertDiv);
+        
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+
+    function setLoading(isLoading) {
+        if (isLoading) {
+            loadingDiv.style.display = 'block';
+            depositBtn.disabled = true;
+            withdrawalBtn.disabled = true;
+        } else {
+            loadingDiv.style.display = 'none';
+            depositBtn.disabled = false;
+            withdrawalBtn.disabled = false;
+        }
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Deposit Form Handler
+    depositForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        // Check if Razorpay is loaded
+        if (!checkRazorpayLoaded()) {
+            return;
+        }
+
+        const amount = parseFloat(document.getElementById('deposit-amount').value);
+        const description = document.getElementById('deposit-description').value || 'Wallet top-up';
+
+        setLoading(true);
+
+        try {
+            // Ensure Razorpay is loaded
+            await loadRazorpayScript();
+
+            // Create Razorpay order
+            const response = await fetch(API_BASE_URL + 'create-deposit-order/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    amount: amount,
+                    description: description,
+                    currency: 'INR'
+                })
+            });
+
+            const orderData = await response.json();
+            
+            if (!orderData.success) {
+                throw new Error(orderData.message);
+            }
+
+            // Debug information
+            console.log('Razorpay Key ID:', RAZORPAY_KEY_ID);
+            console.log('Order Data:', orderData);
+            console.log('Razorpay available:', typeof Razorpay !== 'undefined');
+
+            // Razorpay checkout options
+            const options = {
+                key: RAZORPAY_KEY_ID,
+                amount: orderData.amount,
+                currency: orderData.currency,
+                name: 'Color Prediction Game',
+                description: description,
+                order_id: orderData.order_id,
+                handler: async function(response) {
+                    try {
+                        // Verify payment
+                        const verifyResponse = await fetch(API_BASE_URL + 'verify-payment/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': getCookie('csrftoken')
+                            },
+                            body: JSON.stringify({
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_signature: response.razorpay_signature
+                            })
+                        });
+
+                        const verifyData = await verifyResponse.json();
+                        
+                        if (verifyData.success) {
+                            showAlert(verifyData.message, 'success');
+                            currentBalanceDiv.textContent = '₹' + verifyData.new_balance;
+                            depositForm.reset();
+                            setTimeout(() => location.reload(), 2000);
+                        } else {
+                            throw new Error(verifyData.message);
+                        }
+                    } catch (error) {
+                        showAlert('Payment verification failed: ' + error.message);
+                    } finally {
+                        setLoading(false);
+                    }
+                },
+                prefill: {
+                    name: '{{ player.first_name }} {{ player.last_name }}',
+                    email: '{{ player.email }}',
+                    contact: '{{ player.phone_number }}'
+                },
+                theme: {
+                    color: '#667eea'
+                },
+                modal: {
+                    ondismiss: function() {
+                        setLoading(false);
+                    }
+                }
+            };
+
+            const rzp = new Razorpay(options);
+            rzp.open();
+
+        } catch (error) {
+            setLoading(false);
+            showAlert('Failed to initiate payment: ' + error.message);
+        }
+    });
+
+    // Withdrawal Form Handler
+    withdrawalForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const amount = parseFloat(document.getElementById('withdrawal-amount').value);
+        const bankInfo = {
+            account_number: document.getElementById('account-number').value,
+            routing_number: document.getElementById('routing-number').value,
+            account_holder_name: document.getElementById('account-holder').value,
+            bank_name: document.getElementById('bank-name').value
+        };
+
+        setLoading(true);
+
+        try {
+            const response = await fetch(API_BASE_URL + 'request-withdrawal/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    amount: amount,
+                    bank_account_info: bankInfo
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                showAlert(data.message, 'success');
+                currentBalanceDiv.textContent = '₹' + data.new_balance;
+                withdrawalForm.reset();
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (error) {
+            showAlert('Withdrawal request failed: ' + error.message);
+        } finally {
+            setLoading(false);
+        }
+    });
+
+    // Initialize page when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Payment dashboard loaded');
+        console.log('Razorpay Key ID:', RAZORPAY_KEY_ID);
+
+        // Check if Razorpay is available
+        if (typeof Razorpay === 'undefined') {
+            console.warn('Razorpay not immediately available, will load on demand');
+        } else {
+            console.log('Razorpay is ready');
+        }
+    });
+</script>
+{% endblock %}

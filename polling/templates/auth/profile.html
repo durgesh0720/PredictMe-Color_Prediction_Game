@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Profile - Color Prediction Game</title>
+
+  <!-- Load the enhanced CSS framework -->
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+
+  <style>
+    /* Page-specific enhancements */
+    body {
+      background: var(--primary-gradient);
+      min-height: 100vh;
+      padding: var(--space-6) var(--space-4);
+    }
+
+    .profile-container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    /* Modern Profile Page Styles */
+    .profile-header {
+      text-align: center;
+      margin-bottom: var(--space-10);
+    }
+
+    .profile-main {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: var(--space-10);
+      margin-bottom: var(--space-10);
+    }
+
+    .avatar-card {
+      text-align: center;
+      background: var(--background-primary);
+      border-radius: var(--border-radius-2xl);
+      padding: var(--space-8);
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border-color);
+      transition: var(--transition-smooth);
+    }
+
+    .avatar-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-2xl);
+    }
+
+    .profile-avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: var(--border-radius-full);
+      object-fit: cover;
+      border: 4px solid var(--primary-color);
+      margin-bottom: var(--space-4);
+      transition: var(--transition-smooth);
+    }
+
+    .profile-avatar:hover {
+      transform: scale(1.05);
+      box-shadow: var(--shadow-colored);
+    }
+
+    .default-avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: var(--border-radius-full);
+      background: var(--primary-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-4xl);
+      color: var(--text-on-primary);
+      margin: 0 auto var(--space-4);
+      font-weight: var(--font-bold);
+      border: 4px solid var(--primary-color);
+      transition: var(--transition-smooth);
+    }
+
+    .default-avatar:hover {
+      transform: scale(1.05);
+      box-shadow: var(--shadow-colored);
+    }
+
+    .profile-name {
+      font-size: var(--text-xl);
+      font-weight: var(--font-bold);
+      color: var(--text-primary);
+      margin-bottom: var(--space-1);
+    }
+
+    .profile-username {
+      color: var(--text-secondary);
+      font-size: var(--text-base);
+      font-weight: var(--font-medium);
+    }
+
+    .info-grid {
+      display: grid;
+      gap: var(--space-4);
+    }
+
+    .info-card {
+      background: var(--background-primary);
+      padding: var(--space-6);
+      border-radius: var(--border-radius-xl);
+      border-left: 4px solid var(--primary-color);
+      box-shadow: var(--shadow);
+      transition: var(--transition-smooth);
+      border: 1px solid var(--border-color);
+    }
+
+    .info-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+      border-left-color: var(--primary-hover);
+    }
+
+    .info-label {
+      font-weight: var(--font-semibold);
+      color: var(--text-primary);
+      margin-bottom: var(--space-1);
+      font-size: var(--text-sm);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .info-value {
+      color: var(--text-secondary);
+      font-size: var(--text-lg);
+      font-weight: var(--font-medium);
+    }
+    .stats-section {
+      margin-bottom: var(--space-10);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: var(--space-6);
+    }
+
+    .profile-actions {
+      display: flex;
+      gap: var(--space-4);
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: var(--space-8);
+    }
+
+    .verification-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--border-radius-full);
+      margin-top: var(--space-2);
+    }
+
+    .verification-badge.verified {
+      background: var(--success-100);
+      color: var(--success-700);
+      border: 1px solid var(--success-200);
+    }
+
+    .verification-badge.unverified {
+      background: var(--error-100);
+      color: var(--error-700);
+      border: 1px solid var(--error-200);
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      color: var(--primary-color);
+      text-decoration: none;
+      font-weight: var(--font-semibold);
+      margin-bottom: var(--space-6);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--border-radius);
+      transition: var(--transition-smooth);
+    }
+
+    .back-link:hover {
+      background: var(--primary-50);
+      transform: translateX(-2px);
+    }
+    /* Enhanced Mobile Responsiveness */
+    @media (max-width: 768px) {
+      body {
+        padding: var(--space-4) var(--space-2);
+      }
+
+      .profile-container {
+        margin: 0;
+      }
+
+      .profile-main {
+        grid-template-columns: 1fr;
+        gap: var(--space-6);
+      }
+
+      .profile-avatar,
+      .default-avatar {
+        width: 100px;
+        height: 100px;
+        font-size: var(--text-3xl);
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-4);
+      }
+
+      .profile-actions {
+        flex-direction: column;
+        gap: var(--space-3);
+      }
+
+      .btn {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-3);
+      }
+
+      .profile-avatar,
+      .default-avatar {
+        width: 80px;
+        height: 80px;
+        font-size: var(--text-2xl);
+      }
+    }
+
+  </style>
+</head>
+<body>
+  <div class="profile-container">
+    <!-- Back Navigation -->
+    <a href="{% url 'index' %}" class="back-link">
+      ← Back to Game
+    </a>
+
+    <!-- Profile Header -->
+    <div class="profile-header">
+      <h1>👤 My Profile</h1>
+      <p class="subtitle">Welcome back, {{ player.display_name }}!</p>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="messages-container" style="margin-bottom: var(--space-6);">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Profile Content -->
+    <div class="profile-main">
+      <!-- Avatar Card -->
+      <div class="avatar-card">
+        {% if player.avatar %}
+          <img src="{{ player.avatar.url }}" alt="Avatar" class="profile-avatar"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <div class="default-avatar" style="display: none;">
+            {{ player.username|first|upper }}
+          </div>
+        {% else %}
+          <div class="default-avatar">
+            {{ player.username|first|upper }}
+          </div>
+        {% endif %}
+
+        <div class="profile-name">{{ player.display_name }}</div>
+        <div class="profile-username">@{{ player.username }}</div>
+
+        <!-- Email Verification Status -->
+        <div class="verification-badge {% if player.email_verified %}verified{% else %}unverified{% endif %}">
+          {% if player.email_verified %}
+            ✓ Email Verified
+          {% else %}
+            ⚠ Email Not Verified
+          {% endif %}
+        </div>
+
+        {% if not player.email_verified %}
+        <form method="post" action="{% url 'resend_verification_email' %}" style="margin-top: var(--space-3);">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-warning btn-sm">
+            📧 Verify Email
+          </button>
+        </form>
+        {% endif %}
+      </div>
+
+      <!-- Info Cards -->
+      <div class="info-grid">
+        <div class="info-card">
+          <div class="info-label">Email Address</div>
+          <div class="info-value">{{ player.email }}</div>
+        </div>
+
+        {% if player.phone_number %}
+        <div class="info-card">
+          <div class="info-label">Phone Number</div>
+          <div class="info-value">
+            {{ player.phone_number }}
+            <div class="verification-badge {% if player.phone_verified %}verified{% else %}unverified{% endif %}" style="margin-top: var(--space-1);">
+              {% if player.phone_verified %}
+                ✓ Verified
+              {% else %}
+                ⚠ Not Verified
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if player.date_of_birth %}
+        <div class="info-card">
+          <div class="info-label">Date of Birth</div>
+          <div class="info-value">{{ player.date_of_birth|date:"F d, Y" }}</div>
+        </div>
+        {% endif %}
+
+        <div class="info-card">
+          <div class="info-label">Member Since</div>
+          <div class="info-value">{{ player.created_at|date:"F Y" }}</div>
+        </div>
+
+        {% if player.last_login %}
+        <div class="info-card">
+          <div class="info-label">Last Login</div>
+          <div class="info-value">{{ player.last_login|date:"M d, Y H:i" }}</div>
+        </div>
+        {% endif %}
+
+        {% if player.bio %}
+        <div class="info-card">
+          <div class="info-label">Bio</div>
+          <div class="info-value">{{ player.bio }}</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Game Statistics
+    <div class="stats-section">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">🎮 Game Statistics</h3>
+          <p class="card-subtitle">Your gaming performance overview</p>
+        </div>
+        <div class="card-body">
+          <div class="stats-grid">
+            <div class="stats-card">
+              <div class="stats-value">${{ player.balance }}</div>
+              <div class="stats-label">Current Balance</div>
+            </div>
+            <div class="stats-card">
+              <div class="stats-value">{{ player.score }}</div>
+              <div class="stats-label">Total Score</div>
+            </div>
+            <div class="stats-card">
+              <div class="stats-value">{{ player.total_bets }}</div>
+              <div class="stats-label">Total Bets</div>
+            </div>
+            <div class="stats-card">
+              <div class="stats-value">{{ player.total_wins }}</div>
+              <div class="stats-label">Total Wins</div>
+            </div>
+            <div class="stats-card">
+              <div class="stats-value">{{ player.win_rate }}%</div>
+              <div class="stats-label">Win Rate</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div> -->
+
+    <!-- Action Buttons -->
+    <div class="profile-actions">
+      <a href="{% url 'wallet_management' %}" class="btn btn-primary">💰 Manage Wallet</a>
+      <a href="{% url 'user_history' %}" class="btn btn-info">📊 My History</a>
+      <a href="{% url 'edit_profile' %}" class="btn btn-outline">✏️ Edit Profile</a>
+      <a href="{% url 'change_password' %}" class="btn btn-outline">🔒 Change Password</a>
+      <a href="{% url 'index' %}" class="btn btn-success">🎮 Play Game</a>
+      <a href="{% url 'logout' %}" class="btn btn-outline-error">🚪 Logout</a>
+    </div>
+  </div>
+
+  <!-- Load the enhanced JavaScript framework -->
+  <script src="{% static 'js/main.js' %}"></script>
+
+  <script>
+    // Profile page specific enhancements
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize enhanced UI components
+      if (window.ColorPredictionGame) {
+        // Add ripple effects to cards
+        document.querySelectorAll('.info-card, .stats-card, .avatar-card').forEach(card => {
+          ColorPredictionGame.utils.addRippleEffect(card);
+        });
+
+        // Enhanced button interactions
+        document.querySelectorAll('.btn').forEach(button => {
+          ColorPredictionGame.utils.addRippleEffect(button);
+        });
+      }
+
+      // Smooth scroll for back link
+      const backLink = document.querySelector('.back-link');
+      if (backLink) {
+        backLink.addEventListener('click', function(e) {
+          this.style.transform = 'translateX(-4px)';
+          setTimeout(() => {
+            this.style.transform = '';
+          }, 150);
+        });
+      }
+
+      // Add hover effects for mobile
+      if ('ontouchstart' in window) {
+        document.querySelectorAll('.info-card, .stats-card').forEach(card => {
+          card.addEventListener('touchstart', function() {
+            this.style.transform = 'translateY(-2px) scale(0.98)';
+          });
+          card.addEventListener('touchend', function() {
+            this.style.transform = '';
+          });
+        });
+      }
+    });
+  </script>
+</body>
+</html>

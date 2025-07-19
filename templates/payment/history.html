@@ -1,0 +1,346 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Payment History - Color Prediction Game{% endblock %}
+
+{% block extra_css %}
+<style>
+    .payment-history {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .header-section {
+        background: white;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+    
+    .filters {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+    
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .filter-group label {
+        font-weight: 600;
+        color: #555;
+    }
+    
+    .filter-select {
+        padding: 8px 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+    
+    .transactions-table {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .table th {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+    }
+    
+    .table td {
+        padding: 15px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .table tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .transaction-type {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .type-deposit {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .type-withdrawal {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .amount {
+        font-weight: bold;
+        font-size: 1.1rem;
+    }
+    
+    .amount.positive {
+        color: #27ae60;
+    }
+    
+    .amount.negative {
+        color: #e74c3c;
+    }
+    
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .status-completed {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status-pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .status-failed {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .status-processing {
+        background: #cce5ff;
+        color: #004085;
+    }
+    
+    .no-transactions {
+        text-align: center;
+        padding: 40px;
+        color: #7f8c8d;
+    }
+    
+    .back-btn {
+        display: inline-block;
+        padding: 10px 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: transform 0.3s;
+    }
+    
+    .back-btn:hover {
+        transform: translateY(-2px);
+        text-decoration: none;
+        color: white;
+    }
+    
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .summary-card {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    
+    .summary-card h3 {
+        margin: 0 0 10px 0;
+        color: #333;
+        font-size: 1rem;
+    }
+    
+    .summary-card .value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #667eea;
+    }
+    
+    @media (max-width: 768px) {
+        .table-responsive {
+            overflow-x: auto;
+        }
+        
+        .filters {
+            flex-direction: column;
+        }
+        
+        .table th,
+        .table td {
+            padding: 10px 8px;
+            font-size: 0.9rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="payment-history">
+    <!-- Header -->
+    <div class="header-section">
+        <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 20px;">
+            <h1>📊 Payment History</h1>
+            <a href="{% url 'payment_dashboard' %}" class="back-btn">← Back to Dashboard</a>
+        </div>
+        
+        <!-- Filters -->
+        <div class="filters">
+            <div class="filter-group">
+                <label for="type-filter">Transaction Type</label>
+                <select id="type-filter" class="filter-select">
+                    <option value="all" {% if transaction_type == 'all' %}selected{% endif %}>All Types</option>
+                    <option value="deposit" {% if transaction_type == 'deposit' %}selected{% endif %}>Deposits</option>
+                    <option value="withdrawal" {% if transaction_type == 'withdrawal' %}selected{% endif %}>Withdrawals</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="status-filter">Status</label>
+                <select id="status-filter" class="filter-select">
+                    <option value="all" {% if status == 'all' %}selected{% endif %}>All Status</option>
+                    <option value="completed" {% if status == 'completed' %}selected{% endif %}>Completed</option>
+                    <option value="pending" {% if status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="processing" {% if status == 'processing' %}selected{% endif %}>Processing</option>
+                    <option value="failed" {% if status == 'failed' %}selected{% endif %}>Failed</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+        <div class="summary-card">
+            <h3>Total Deposits</h3>
+            <div class="value">₹{{ total_deposits|default:0 }}</div>
+        </div>
+        <div class="summary-card">
+            <h3>Total Withdrawals</h3>
+            <div class="value">₹{{ total_withdrawals|default:0 }}</div>
+        </div>
+        <div class="summary-card">
+            <h3>Current Balance</h3>
+            <div class="value">₹{{ player.balance }}</div>
+        </div>
+        <div class="summary-card">
+            <h3>Total Transactions</h3>
+            <div class="value">{{ payments|length }}</div>
+        </div>
+    </div>
+
+    <!-- Transactions Table -->
+    <div class="transactions-table">
+        {% if payments %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Payment ID</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in payments %}
+                    <tr>
+                        <td>
+                            <div>{{ payment.created_at|date:"M d, Y" }}</div>
+                            <div style="font-size: 0.8rem; color: #7f8c8d;">{{ payment.created_at|time:"H:i" }}</div>
+                        </td>
+                        <td>
+                            <span class="transaction-type type-{{ payment.transaction_type }}">
+                                {% if payment.transaction_type == 'deposit' %}
+                                    💳 Deposit
+                                {% else %}
+                                    💸 Withdrawal
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td>{{ payment.description|truncatechars:50 }}</td>
+                        <td>
+                            <span class="amount {% if payment.transaction_type == 'deposit' %}positive{% else %}negative{% endif %}">
+                                {% if payment.transaction_type == 'deposit' %}+{% else %}-{% endif %}₹{{ payment.amount }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ payment.status }}">
+                                {{ payment.status|title }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if payment.razorpay_payment_id %}
+                                <code style="font-size: 0.8rem;">{{ payment.razorpay_payment_id|truncatechars:15 }}</code>
+                            {% elif payment.razorpay_order_id %}
+                                <code style="font-size: 0.8rem;">{{ payment.razorpay_order_id|truncatechars:15 }}</code>
+                            {% else %}
+                                <span style="color: #7f8c8d;">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="no-transactions">
+            <h3>📭 No Transactions Found</h3>
+            <p>You haven't made any transactions yet.</p>
+            <a href="{% url 'payment_dashboard' %}" class="back-btn" style="margin-top: 15px;">
+                Start by Adding Money
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Filter functionality
+    document.getElementById('type-filter').addEventListener('change', function() {
+        updateFilters();
+    });
+    
+    document.getElementById('status-filter').addEventListener('change', function() {
+        updateFilters();
+    });
+    
+    function updateFilters() {
+        const typeFilter = document.getElementById('type-filter').value;
+        const statusFilter = document.getElementById('status-filter').value;
+        
+        const url = new URL(window.location);
+        url.searchParams.set('type', typeFilter);
+        url.searchParams.set('status', statusFilter);
+        
+        window.location.href = url.toString();
+    }
+</script>
+{% endblock %}

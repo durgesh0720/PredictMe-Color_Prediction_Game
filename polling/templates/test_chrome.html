@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .test-container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        .test-item {
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .warning { color: #ff9800; }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔍 Chrome Compatibility Test</h1>
+        <p>This page tests if Chrome can load the site properly.</p>
+        
+        <div class="test-item">
+            <h3>✅ Basic HTML/CSS Loading</h3>
+            <p>If you can see this styled page, basic HTML and CSS are working.</p>
+        </div>
+        
+        <div class="test-item">
+            <h3>🔧 JavaScript Test</h3>
+            <p id="js-test">❌ JavaScript not loaded</p>
+        </div>
+        
+        <div class="test-item">
+            <h3>🌐 Browser Information</h3>
+            <p id="browser-info">Loading...</p>
+        </div>
+        
+        <div class="test-item">
+            <h3>🔗 Navigation Tests</h3>
+            <button onclick="testNavigation()">Test Navigation</button>
+            <button onclick="testAjax()">Test AJAX</button>
+            <div id="nav-results"></div>
+        </div>
+        
+        <div class="test-item">
+            <h3>🔒 Security Headers Test</h3>
+            <p id="security-info">Checking security headers...</p>
+        </div>
+        
+        <div class="test-item">
+            <h3>📱 Quick Links</h3>
+            <a href="/login/" style="color: #4CAF50; text-decoration: none; margin-right: 15px;">🔑 Login Page</a>
+            <a href="/" style="color: #4CAF50; text-decoration: none; margin-right: 15px;">🏠 Home Page</a>
+            <a href="/register/" style="color: #4CAF50; text-decoration: none;">📝 Register Page</a>
+        </div>
+    </div>
+
+    <script>
+        // Test JavaScript loading
+        document.getElementById('js-test').innerHTML = '✅ JavaScript is working!';
+        document.getElementById('js-test').className = 'success';
+        
+        // Browser information
+        const browserInfo = {
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            language: navigator.language,
+            cookieEnabled: navigator.cookieEnabled,
+            onLine: navigator.onLine,
+            vendor: navigator.vendor,
+            chrome: !!window.chrome,
+            firefox: navigator.userAgent.indexOf('Firefox') > -1,
+            safari: navigator.userAgent.indexOf('Safari') > -1 && navigator.userAgent.indexOf('Chrome') === -1
+        };
+        
+        let browserHtml = '<ul>';
+        for (const [key, value] of Object.entries(browserInfo)) {
+            browserHtml += `<li><strong>${key}:</strong> ${value}</li>`;
+        }
+        browserHtml += '</ul>';
+        document.getElementById('browser-info').innerHTML = browserHtml;
+        
+        // Test navigation
+        function testNavigation() {
+            const results = document.getElementById('nav-results');
+            results.innerHTML = '<p>Testing navigation...</p>';
+            
+            // Test if we can access the login page
+            fetch('/login/')
+                .then(response => {
+                    if (response.ok) {
+                        results.innerHTML += '<p class="success">✅ Login page accessible</p>';
+                    } else {
+                        results.innerHTML += `<p class="error">❌ Login page error: ${response.status}</p>`;
+                    }
+                })
+                .catch(error => {
+                    results.innerHTML += `<p class="error">❌ Navigation error: ${error.message}</p>`;
+                });
+        }
+        
+        // Test AJAX
+        function testAjax() {
+            const results = document.getElementById('nav-results');
+            results.innerHTML += '<p>Testing AJAX...</p>';
+            
+            fetch('/debug/session/')
+                .then(response => response.json())
+                .then(data => {
+                    results.innerHTML += '<p class="success">✅ AJAX working</p>';
+                })
+                .catch(error => {
+                    results.innerHTML += `<p class="error">❌ AJAX error: ${error.message}</p>`;
+                });
+        }
+        
+        // Check security headers
+        fetch(window.location.href)
+            .then(response => {
+                const headers = {};
+                for (const [key, value] of response.headers.entries()) {
+                    if (key.toLowerCase().includes('security') || 
+                        key.toLowerCase().includes('frame') || 
+                        key.toLowerCase().includes('content-security') ||
+                        key.toLowerCase().includes('xss')) {
+                        headers[key] = value;
+                    }
+                }
+                
+                let securityHtml = '<ul>';
+                if (Object.keys(headers).length > 0) {
+                    for (const [key, value] of Object.entries(headers)) {
+                        securityHtml += `<li><strong>${key}:</strong> ${value}</li>`;
+                    }
+                } else {
+                    securityHtml += '<li>No security headers detected in response</li>';
+                }
+                securityHtml += '</ul>';
+                document.getElementById('security-info').innerHTML = securityHtml;
+            })
+            .catch(error => {
+                document.getElementById('security-info').innerHTML = `<p class="error">Error checking headers: ${error.message}</p>`;
+            });
+        
+        // Console logging for debugging
+        console.log('Chrome Test Page Loaded');
+        console.log('Browser Info:', browserInfo);
+        console.log('Current URL:', window.location.href);
+        console.log('Document Ready State:', document.readyState);
+    </script>
+</body>
+</html>

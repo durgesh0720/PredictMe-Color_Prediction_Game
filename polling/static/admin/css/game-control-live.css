@@ -1,0 +1,616 @@
+/**
+ * Admin Game Control Live - Stylesheet
+ * 
+ * This stylesheet provides styling for the live game control admin panel.
+ * It includes responsive design, accessibility features, and modern UI components.
+ * 
+ * @version 1.0.0
+ * @author Admin Panel Team
+ * @created 2024-01-19
+ */
+
+/* ========================================
+   CSS Custom Properties for Color Scheme
+   ======================================== */
+:root {
+    /* Game Color Scheme */
+    --color-red: #ef4444;
+    --color-green: #10b981;
+    --color-violet: #8b5cf6;
+    --color-blue: #3b82f6;
+    
+    /* Light Color Variants */
+    --color-red-light: #fef2f2;
+    --color-green-light: #ecfdf5;
+    --color-violet-light: #f5f3ff;
+    --color-blue-light: #eff6ff;
+    
+    /* Status Colors */
+    --status-active-bg: #dcfce7;
+    --status-active-color: #16a34a;
+    --status-ended-bg: #f3f4f6;
+    --status-ended-color: #6b7280;
+    
+    /* Timer Colors */
+    --timer-ended-bg: #6b7280;
+    --timer-ended-color: white;
+    
+    /* Accessibility Improvements */
+    --focus-ring: 0 0 0 2px var(--primary);
+    --focus-ring-offset: 0 0 0 4px rgba(79, 70, 229, 0.1);
+}
+
+/* ========================================
+   Game Status Header
+   ======================================== */
+.game-status-header {
+    background: linear-gradient(135deg, var(--primary), var(--info));
+    color: white;
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.status-item {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius);
+    padding: 1rem;
+    text-align: center;
+}
+
+.status-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.status-label {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+/* ========================================
+   Round Cards Container
+   ======================================== */
+.rounds-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.round-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.round-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.round-card.active {
+    border-color: var(--success);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+.round-card.ended {
+    border-color: var(--status-ended-color);
+    background: var(--status-ended-bg);
+    opacity: 0.85;
+}
+
+/* ========================================
+   Status Badges
+   ======================================== */
+.status-badge {
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-left: 0.5rem;
+}
+
+.status-badge.active {
+    background: var(--status-active-bg);
+    color: var(--status-active-color);
+}
+
+.status-badge.ended {
+    background: var(--status-ended-bg);
+    color: var(--status-ended-color);
+}
+
+/* ========================================
+   Timer Components
+   ======================================== */
+.timer {
+    font-size: 1.25rem;
+    font-weight: 700;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius);
+    min-width: 80px;
+    text-align: center;
+    color: white;
+}
+
+.timer.normal {
+    background: var(--info);
+}
+
+.timer.warning {
+    background: var(--warning);
+    animation: pulse 2s infinite;
+}
+
+.timer.critical {
+    background: var(--danger);
+    animation: pulse 1s infinite;
+}
+
+.timer.ended {
+    background: var(--timer-ended-bg);
+    color: var(--timer-ended-color);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* ========================================
+   Round Header
+   ======================================== */
+.round-header {
+    background: var(--bg-main);
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.round-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* ========================================
+   Betting Statistics
+   ======================================== */
+.betting-stats {
+    padding: 1.5rem;
+}
+
+.color-bets {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.color-bet {
+    background: var(--bg-main);
+    border-radius: var(--radius);
+    padding: 1rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.color-bet::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+}
+
+.color-bet.red::before { background: var(--color-red); }
+.color-bet.green::before { background: var(--color-green); }
+.color-bet.violet::before { background: var(--color-violet); }
+.color-bet.blue::before { background: var(--color-blue); }
+
+/* ========================================
+   Color Icons
+   ======================================== */
+.color-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    margin: 0 auto 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.875rem;
+    /* Improved accessibility */
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.color-icon.red { background: var(--color-red); }
+.color-icon.green { background: var(--color-green); }
+.color-icon.violet { background: var(--color-violet); }
+.color-icon.blue { background: var(--color-blue); }
+
+/* ========================================
+   Bet Information Display
+   ======================================== */
+.bet-amount {
+    font-size: 1.125rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    color: var(--text-primary);
+}
+
+.bet-count {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.bet-users {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* ========================================
+   Round Summary
+   ======================================== */
+.round-summary {
+    background: var(--bg-main);
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 1rem;
+    text-align: center;
+}
+
+.summary-item {
+    padding: 0.5rem;
+}
+
+.summary-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.summary-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ========================================
+   Color Selection Interface
+   ======================================== */
+.color-selection {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.3rem;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    background: #f8fafc;
+    border-radius: var(--radius);
+    border: 1px solid #e2e8f0;
+}
+
+.color-option {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--bg-card);
+    font-weight: 500;
+    font-size: 0.75rem;
+    opacity: 0.8;
+    /* Accessibility improvements */
+    position: relative;
+    min-height: 44px; /* Touch target size */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.color-option:hover {
+    opacity: 1;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.color-option:focus {
+    outline: none;
+    box-shadow: var(--focus-ring), var(--focus-ring-offset);
+}
+
+.color-option.selected {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: white;
+    opacity: 1;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+}
+
+.color-option.red { border-color: var(--color-red); }
+.color-option.green { border-color: var(--color-green); }
+.color-option.violet { border-color: var(--color-violet); }
+.color-option.blue { border-color: var(--color-blue); }
+
+.color-option.red.selected { background: var(--color-red); border-color: var(--color-red); }
+.color-option.green.selected { background: var(--color-green); border-color: var(--color-green); }
+.color-option.violet.selected { background: var(--color-violet); border-color: var(--color-violet); }
+.color-option.blue.selected { background: var(--color-blue); border-color: var(--color-blue); }
+
+/* ========================================
+   Action Buttons
+   ======================================== */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.btn-submit {
+    background: var(--success);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    flex: 1;
+}
+
+.btn-submit:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+}
+
+.btn-submit:disabled {
+    background: var(--secondary);
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ========================================
+   Recent Selections
+   ======================================== */
+.recent-selections {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+}
+
+.selection-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.selection-item:last-child {
+    border-bottom: none;
+}
+
+.selection-color {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.selection-color-red { background-color: var(--color-red); }
+.selection-color-green { background-color: var(--color-green); }
+.selection-color-violet { background-color: var(--color-violet); }
+.selection-color-blue { background-color: var(--color-blue); }
+
+.selection-info {
+    flex: 1;
+}
+
+.selection-round {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.selection-time {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+/* ========================================
+   Live Indicator
+   ======================================== */
+.live-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--success);
+    color: white;
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+}
+
+.live-dot {
+    width: 8px;
+    height: 8px;
+    background: white;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+/* ========================================
+   Status Messages
+   ======================================== */
+.status-message {
+    padding: 0.75rem;
+    background: #dbeafe;
+    border: 1px solid #3b82f6;
+    border-radius: var(--radius);
+    color: #1e40af;
+    text-align: center;
+}
+
+/* ========================================
+   Responsive Design
+   ======================================== */
+
+/* Large tablets and small desktops */
+@media (max-width: 1024px) {
+    .rounds-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Tablets */
+@media (max-width: 768px) {
+    .game-status-header {
+        padding: 1.5rem;
+    }
+
+    .rounds-container {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .color-bets {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .status-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .color-selection {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+}
+
+/* Mobile devices */
+@media (max-width: 480px) {
+    .game-status-header {
+        padding: 1rem;
+    }
+
+    .status-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .color-bets {
+        grid-template-columns: 1fr;
+    }
+
+    .color-selection {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .round-header {
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: center;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+}
+
+/* ========================================
+   Accessibility Enhancements
+   ======================================== */
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .color-option {
+        border-width: 2px;
+    }
+
+    .status-badge {
+        border: 1px solid currentColor;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .round-card,
+    .color-option,
+    .btn-submit {
+        transition: none;
+    }
+
+    .timer.warning,
+    .timer.critical,
+    .live-dot {
+        animation: none;
+    }
+}
+
+/* Focus visible for keyboard navigation */
+.color-option:focus-visible,
+.btn-submit:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* ========================================
+   Print Styles
+   ======================================== */
+@media print {
+    .game-status-header {
+        background: none !important;
+        color: black !important;
+    }
+
+    .round-card {
+        box-shadow: none !important;
+        border: 1px solid #000 !important;
+    }
+
+    .color-selection,
+    .action-buttons {
+        display: none !important;
+    }
+}

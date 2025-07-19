@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+{% block title %}Notification Settings - Color Prediction Game{% endblock %}
+
+{% block extra_css %}
+<style>
+.settings-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.settings-header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 30px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px;
+}
+
+.settings-header h1 {
+    margin: 0 0 10px 0;
+    font-size: 28px;
+    font-weight: 600;
+}
+
+.settings-header p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 16px;
+}
+
+.category-section {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 25px;
+    overflow: hidden;
+}
+
+.category-header {
+    background: #f8f9fa;
+    padding: 20px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.category-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.category-icon {
+    font-size: 20px;
+}
+
+.notification-item {
+    padding: 20px;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-info {
+    flex: 1;
+}
+
+.notification-name {
+    font-weight: 600;
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.notification-description {
+    font-size: 14px;
+    color: #6b7280;
+    line-height: 1.4;
+}
+
+.notification-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.delivery-select {
+    padding: 8px 12px;
+    border: 2px solid #e5e7eb;
+    border-radius: 6px;
+    background: white;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 120px;
+}
+
+.delivery-select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.delivery-select option {
+    padding: 8px;
+}
+
+.save-section {
+    text-align: center;
+    margin-top: 30px;
+    padding: 30px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.save-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 15px 40px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);
+}
+
+.save-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+}
+
+.info-box {
+    background: #f0f9ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 30px;
+}
+
+.info-box h3 {
+    margin: 0 0 10px 0;
+    color: #1e40af;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.info-box p {
+    margin: 0;
+    color: #1e40af;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.delivery-option-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.delivery-option {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.delivery-option-title {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.delivery-option-desc {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+@media (max-width: 768px) {
+    .settings-container {
+        padding: 15px;
+    }
+    
+    .notification-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+    }
+    
+    .notification-controls {
+        justify-content: flex-end;
+    }
+    
+    .delivery-select {
+        min-width: 100px;
+    }
+    
+    .delivery-option-info {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+    <div class="settings-header">
+        <h1>🔔 Notification Settings</h1>
+        <p>Customize how and when you receive notifications</p>
+    </div>
+    
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <div class="info-box">
+        <h3>📱 Delivery Methods</h3>
+        <p>Choose how you want to receive each type of notification. You can receive notifications via email, in-app alerts, both, or disable them completely.</p>
+        
+        <div class="delivery-option-info">
+            <div class="delivery-option">
+                <div class="delivery-option-title">📧 Email</div>
+                <div class="delivery-option-desc">Sent to your registered email address</div>
+            </div>
+            <div class="delivery-option">
+                <div class="delivery-option-title">📱 In-App</div>
+                <div class="delivery-option-desc">Real-time notifications while using the app</div>
+            </div>
+            <div class="delivery-option">
+                <div class="delivery-option-title">📬 Both</div>
+                <div class="delivery-option-desc">Receive via both email and in-app</div>
+            </div>
+            <div class="delivery-option">
+                <div class="delivery-option-title">🚫 None</div>
+                <div class="delivery-option-desc">Disable this notification type</div>
+            </div>
+        </div>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        {% for category, items in categories.items %}
+        <div class="category-section">
+            <div class="category-header">
+                <h2 class="category-title">
+                    <span class="category-icon">
+                        {% if category == 'game' %}🎮
+                        {% elif category == 'wallet' %}💰
+                        {% elif category == 'account' %}👤
+                        {% elif category == 'system' %}📢
+                        {% elif category == 'security' %}🔒
+                        {% else %}📢{% endif %}
+                    </span>
+                    {% if category == 'game' %}Game Events
+                    {% elif category == 'wallet' %}Wallet & Transactions
+                    {% elif category == 'account' %}Account Activities
+                    {% elif category == 'system' %}System Announcements
+                    {% elif category == 'security' %}Security Alerts
+                    {% else %}{{ category|title }}{% endif %}
+                </h2>
+            </div>
+            
+            {% for item in items %}
+            <div class="notification-item">
+                <div class="notification-info">
+                    <div class="notification-name">{{ item.notification_type.name }}</div>
+                    {% if item.notification_type.description %}
+                    <div class="notification-description">{{ item.notification_type.description }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="notification-controls">
+                    <select name="notification_{{ item.notification_type.id }}" class="delivery-select">
+                        <option value="both" {% if item.current_setting == 'both' %}selected{% endif %}>📬 Both</option>
+                        <option value="email" {% if item.current_setting == 'email' %}selected{% endif %}>📧 Email Only</option>
+                        <option value="in_app" {% if item.current_setting == 'in_app' %}selected{% endif %}>📱 In-App Only</option>
+                        <option value="none" {% if item.current_setting == 'none' %}selected{% endif %}>🚫 None</option>
+                    </select>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+        
+        <div class="save-section">
+            <button type="submit" class="save-btn">💾 Save Preferences</button>
+            <p style="margin-top: 15px; color: #6b7280; font-size: 14px;">
+                Changes will take effect immediately for new notifications
+            </p>
+        </div>
+    </form>
+</div>
+{% endblock %}

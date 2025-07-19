@@ -1,0 +1,236 @@
+{% extends 'admin/modern_base.html' %}
+{% load math_filters %}
+
+{% block title %}Live Game Control{% endblock %}
+{% block page_title %}Live Game Control{% endblock %}
+
+{% load static %}
+
+{% block extra_css %}
+<!-- External CSS for better maintainability -->
+<link rel="stylesheet" href="{% static 'admin/css/game-control-live.css' %}">
+<!-- All styles moved to external CSS file for better maintainability -->
+{% endblock %}
+
+{% block content %}
+<!-- Live Status Header -->
+<div class="game-status-header">
+    <div class="live-indicator">
+        <div class="live-dot"></div>
+        LIVE GAME CONTROL
+    </div>
+    <h2>Real-time Game Management</h2>
+    <div class="status-grid">
+        <div class="status-item">
+            <div class="status-value">{{ active_rounds|length }}</div>
+            <div class="status-label">Active Rounds</div>
+        </div>
+        <div class="status-item">
+            <div class="status-value">{{ game_controls|length }}</div>
+            <div class="status-label">Game Types</div>
+        </div>
+        <div class="status-item">
+            <div class="status-value" id="total-players">0</div>
+            <div class="status-label">Active Players</div>
+        </div>
+        <div class="status-item">
+            <div class="status-value" id="total-amount" aria-label="Total bet amount">₹0</div>
+            <div class="status-label">Total Bets</div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div style="margin-bottom: 2rem; text-align: center;">
+    <button class="btn btn-success" onclick="createTestRounds()" style="padding: 0.75rem 1.5rem; margin-right: 1rem;">
+        <i class="fas fa-plus-circle"></i>
+        Create Test Rounds
+    </button>
+    <button class="btn btn-info" onclick="refreshData()" style="padding: 0.75rem 1.5rem;">
+        <i class="fas fa-sync-alt"></i>
+        Refresh Data
+    </button>
+</div>
+
+<!-- Active Rounds -->
+{% if rounds_data %}
+<div class="rounds-container">
+    {% for round_data in rounds_data %}
+    <div class="round-card {% if round_data.round.ended %}ended{% elif round_data.can_select %}active{% endif %}" data-round-id="{{ round_data.round.id }}">
+        <div class="round-header">
+            <div class="round-title">
+                {{ round_data.round.room|title }} - Round {{ round_data.round.period_id }}
+                {% if round_data.round.ended %}
+                    <span class="status-badge ended">ENDED</span>
+                {% else %}
+                    <span class="status-badge active">LIVE</span>
+                {% endif %}
+            </div>
+            {% if not round_data.round.ended %}
+                <div class="timer {% if round_data.time_remaining <= 10 %}critical{% elif round_data.time_remaining <= 20 %}warning{% else %}normal{% endif %}"
+                     data-time="{{ round_data.time_remaining }}">
+                    {{ round_data.time_remaining }}s
+                </div>
+            {% else %}
+                <div class="timer ended">
+                    ENDED
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="betting-stats">
+            <!-- Round Summary -->
+            <div class="round-summary">
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <div class="summary-value">{{ round_data.total_bets }}</div>
+                        <div class="summary-label">Total Bets</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-value">₹{{ round_data.total_amount }}</div>
+                        <div class="summary-label">Total Amount</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-value">{{ round_data.color_stats.red.users|add:round_data.color_stats.green.users|add:round_data.color_stats.violet.users|add:round_data.color_stats.blue.users }}</div>
+                        <div class="summary-label">Players</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Color Betting Statistics -->
+            <div class="color-bets">
+                {% for color, stats in round_data.color_stats.items %}
+                <div class="color-bet {{ color }}">
+                    <div class="color-icon {{ color }}">
+                        <i class="fas fa-circle"></i>
+                    </div>
+                    <div class="bet-amount">₹{{ stats.amount }}</div>
+                    <div class="bet-count">{{ stats.count }} bets</div>
+                    <div class="bet-users">{{ stats.users }} players</div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            {% if not round_data.round.ended %}
+                <!-- Discrete Admin Color Selection (Active Rounds Only) -->
+                <div class="color-selection" id="color-selection-{{ round_data.round.id }}" role="group" aria-label="Color selection for round {{ round_data.round.period_id }}">
+                    <button type="button" class="color-option red" onclick="selectColor('{{ round_data.round.id }}', 'red')"
+                            role="button" aria-label="Select Red" tabindex="0">
+                        <div>R</div>
+                    </button>
+                    <button type="button" class="color-option green" onclick="selectColor('{{ round_data.round.id }}', 'green')"
+                            role="button" aria-label="Select Green" tabindex="0">
+                        <div>G</div>
+                    </button>
+                    <button type="button" class="color-option violet" onclick="selectColor('{{ round_data.round.id }}', 'violet')"
+                            role="button" aria-label="Select Violet" tabindex="0">
+                        <div>V</div>
+                    </button>
+                    <button type="button" class="color-option blue" onclick="selectColor('{{ round_data.round.id }}', 'blue')"
+                            role="button" aria-label="Select Blue" tabindex="0">
+                        <div>B</div>
+                    </button>
+                </div>
+
+                <!-- Discrete Submit Button -->
+                <div class="action-buttons" id="action-buttons-{{ round_data.round.id }}">
+                    <button type="button" class="btn-submit" onclick="submitResult('{{ round_data.round.id }}')"
+                            id="submit-{{ round_data.round.id }}" disabled
+                            style="padding: 0.4rem 0.8rem; font-size: 0.75rem; opacity: 0.8;"
+                            aria-label="Submit result for round {{ round_data.round.period_id }}"
+                            aria-describedby="status-text-{{ round_data.round.id }}">
+                        <i class="fas fa-check" aria-hidden="true"></i> Set Result
+                    </button>
+                </div>
+
+                <!-- Status Message -->
+                <div class="alert alert-info status-message" id="status-message-{{ round_data.round.id }}" role="status" aria-live="polite">
+                    <i class="fas fa-clock" aria-hidden="true"></i> <span id="status-text-{{ round_data.round.id }}">Betting in progress...</span>
+                </div>
+            {% else %}
+                <!-- Round Result Display (Ended Rounds) -->
+                <div class="round-result" style="padding: 0.75rem; background: #f0fdf4; border: 1px solid #16a34a; border-radius: var(--radius); color: #15803d; text-align: center;">
+                    {% if round_data.round.result_color %}
+                        <i class="fas fa-check-circle"></i>
+                        <strong>Result: {{ round_data.round.result_color|title }}
+                        {% if round_data.round.result_number %}({{ round_data.round.result_number }}){% endif %} WINS!</strong>
+                        <div style="font-size: 0.8rem; margin-top: 0.25rem; opacity: 0.8;">
+                            Round completed
+                        </div>
+                    {% else %}
+                        <i class="fas fa-hourglass-end"></i> Round ended - No result recorded
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center" style="padding: 3rem;">
+        <i class="fas fa-gamepad" style="font-size: 4rem; color: var(--text-light); margin-bottom: 1rem;"></i>
+        <h3>No Active Rounds</h3>
+        <p class="text-muted">No game rounds are currently active. Start a new game to begin.</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recent Selections -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-history"></i> Recent Admin Selections
+        </h3>
+    </div>
+    <div class="card-body">
+        {% if recent_selections %}
+        <div class="recent-selections">
+            {% for selection in recent_selections|slice:":10" %}
+            <div class="selection-item">
+                <div class="selection-color selection-color-{{ selection.selected_color }}">
+                    {% if selection.selected_color == 'red' %}R{% elif selection.selected_color == 'green' %}G{% elif selection.selected_color == 'violet' %}V{% else %}B{% endif %}
+                </div>
+                <div class="selection-info">
+                    <div class="selection-round">{{ selection.round.room|title }} - Round {{ selection.round.period_id }}</div>
+                    <div class="selection-time">
+                        {{ selection.selection_time|date:"M d, H:i:s" }}
+                        {% if selection.is_auto_selected %}
+                            (Auto-selected)
+                        {% elif selection.admin %}
+                            by {{ selection.admin.username }}
+                        {% else %}
+                            (Manual)
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center text-muted" style="padding: 2rem;">
+            <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+            <div>No recent selections</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- External JavaScript files for better maintainability and security -->
+<script src="{% static 'admin/js/game-control-live.js' %}"></script>
+<script src="{% static 'admin/js/websocket-manager.js' %}"></script>
+
+<script>
+    // All functionality has been moved to external JavaScript files:
+    // - game-control-live.js: Core game control functionality and initialization
+    // - websocket-manager.js: WebSocket communication and security
+
+    // Global functions are available:
+    // - selectColor(roundId, color)
+    // - submitResult(roundId)
+    // - createTestRounds()
+    // - refreshData()
+</script>
+{% endblock %}

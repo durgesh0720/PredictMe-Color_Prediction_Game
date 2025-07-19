@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Recent Matches - Color Prediction Game</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  <style>
+    .matches-container {
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 20px;
+    }
+    
+    .match-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border-left: 5px solid #667eea;
+    }
+    
+    .match-card.participated {
+      border-left-color: #10b981;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(255, 255, 255, 1) 100%);
+    }
+    
+    .match-card.won {
+      border-left-color: #059669;
+      background: linear-gradient(135deg, rgba(5, 150, 105, 0.1) 0%, rgba(255, 255, 255, 1) 100%);
+    }
+    
+    .match-card.lost {
+      border-left-color: #dc2626;
+      background: linear-gradient(135deg, rgba(220, 38, 38, 0.05) 0%, rgba(255, 255, 255, 1) 100%);
+    }
+    
+    .match-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    
+    .match-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    
+    .period-badge {
+      background: #667eea;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    
+    .game-type {
+      background: #f3f4f6;
+      color: #374151;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    
+    .match-time {
+      color: #6b7280;
+      font-size: 0.9rem;
+    }
+    
+    .result-section {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+    
+    .result-display {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #f8f9fa;
+      padding: 10px 15px;
+      border-radius: 8px;
+    }
+    
+    .result-number {
+      background: #374151;
+      color: white;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+    
+    .result-color {
+      padding: 8px 16px;
+      border-radius: 20px;
+      color: white;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    
+    .result-color.red { background: #dc2626; }
+    .result-color.green { background: #059669; }
+    .result-color.violet { background: #7c3aed; }
+    
+    .player-participation {
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 15px;
+    }
+    
+    .participation-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    
+    .participation-details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+      font-size: 0.9rem;
+    }
+    
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    .color-distribution {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-top: 15px;
+    }
+    
+    .color-stat {
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+      border-top: 3px solid;
+    }
+    
+    .color-stat.red { border-top-color: #dc2626; }
+    .color-stat.green { border-top-color: #059669; }
+    .color-stat.violet { border-top-color: #7c3aed; }
+    
+    .color-name {
+      font-weight: 600;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+    }
+    
+    .color-stats {
+      font-size: 0.85rem;
+      color: #6b7280;
+    }
+    
+    .percentage-bar {
+      width: 100%;
+      height: 6px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      margin: 5px 0;
+      overflow: hidden;
+    }
+    
+    .percentage-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+    
+    .percentage-fill.red { background: #dc2626; }
+    .percentage-fill.green { background: #059669; }
+    .percentage-fill.violet { background: #7c3aed; }
+    
+    .no-participation {
+      text-align: center;
+      color: #6b7280;
+      font-style: italic;
+      padding: 20px;
+      background: #f9fafb;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+    
+    .match-summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 15px;
+      border-top: 1px solid #e5e7eb;
+      font-size: 0.9rem;
+      color: #6b7280;
+    }
+    
+    .total-stats {
+      display: flex;
+      gap: 20px;
+    }
+    
+    .actions {
+      text-align: center;
+      margin: 30px 0;
+    }
+    
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      margin: 0 10px;
+      border: none;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+    
+    .btn-secondary {
+      background: #6b7280;
+      color: white;
+    }
+    
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    
+    @media (max-width: 768px) {
+      .matches-container {
+        padding: 10px;
+      }
+      
+      .match-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .result-section {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .color-distribution {
+        grid-template-columns: 1fr;
+      }
+      
+      .total-stats {
+        flex-direction: column;
+        gap: 5px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="matches-container">
+    <div class="header text-center mb-4">
+      <h1>🎯 Recent Matches</h1>
+      <p class="subtitle">View recent game results and your participation</p>
+    </div>
+
+    {% for match in matches_data %}
+    <div class="match-card {% if match.player_participated %}participated{% endif %} {% if match.player_won %}won{% elif match.player_participated %}lost{% endif %}">
+      <!-- Match Header -->
+      <div class="match-header">
+        <div class="match-info">
+          <span class="period-badge">Period {{ match.round.period_id }}</span>
+          <span class="game-type">{{ match.round.game_type|upper }}</span>
+          <span class="match-time">{{ match.round.start_time|date:"M d, Y H:i" }}</span>
+        </div>
+        {% if match.player_participated %}
+          <div class="participation-status">
+            {% if match.player_won %}
+              <span style="color: #059669; font-weight: 600;">✅ WON</span>
+            {% else %}
+              <span style="color: #dc2626; font-weight: 600;">❌ LOST</span>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Result Display -->
+      <div class="result-section">
+        <div class="result-display">
+          <div class="result-number">{{ match.round.result_number }}</div>
+          <div class="result-color {{ match.round.result_color }}">
+            {% if match.round.result_color == 'red' %}🔴{% elif match.round.result_color == 'green' %}🟢{% else %}🟣{% endif %}
+            {{ match.round.result_color|upper }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Player Participation -->
+      {% if match.player_participated %}
+      <div class="player-participation">
+        <div class="participation-header">
+          <span>👤 Your Participation</span>
+        </div>
+        <div class="participation-details">
+          <div class="stat-item">
+            <span>Bets Placed:</span>
+            <strong>{{ match.player_bets|length }}</strong>
+          </div>
+          <div class="stat-item">
+            <span>Total Bet:</span>
+            <strong>₹{{ match.player_total_bet|floatformat:0 }}</strong>
+          </div>
+          <div class="stat-item">
+            <span>Payout:</span>
+            <strong style="color: {% if match.player_total_payout > 0 %}#059669{% else %}#dc2626{% endif %}">
+              ₹{{ match.player_total_payout|floatformat:0 }}
+            </strong>
+          </div>
+          <div class="stat-item">
+            <span>Profit/Loss:</span>
+            <strong style="color: {% if match.player_total_payout > match.player_total_bet %}#059669{% else %}#dc2626{% endif %}">
+              {% if match.player_total_payout > match.player_total_bet %}+{% endif %}₹{{ match.player_total_payout|add:match.player_total_bet|floatformat:0 }}
+            </strong>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div class="no-participation">
+        <span>You did not participate in this match</span>
+      </div>
+      {% endif %}
+
+      <!-- Color Distribution -->
+      <div class="color-distribution">
+        <div class="color-stat red">
+          <div class="color-name">🔴 Red</div>
+          <div class="color-stats">
+            {{ match.color_distribution.red.count }} bets<br>
+            ₹{{ match.color_distribution.red.amount|floatformat:0 }}
+          </div>
+          <div class="percentage-bar">
+            <div class="percentage-fill red" style="width: {{ match.winning_percentage.red }}%"></div>
+          </div>
+          <div style="font-size: 0.8rem;">{{ match.winning_percentage.red|floatformat:1 }}%</div>
+        </div>
+        
+        <div class="color-stat green">
+          <div class="color-name">🟢 Green</div>
+          <div class="color-stats">
+            {{ match.color_distribution.green.count }} bets<br>
+            ₹{{ match.color_distribution.green.amount|floatformat:0 }}
+          </div>
+          <div class="percentage-bar">
+            <div class="percentage-fill green" style="width: {{ match.winning_percentage.green }}%"></div>
+          </div>
+          <div style="font-size: 0.8rem;">{{ match.winning_percentage.green|floatformat:1 }}%</div>
+        </div>
+        
+        <div class="color-stat violet">
+          <div class="color-name">🟣 Violet</div>
+          <div class="color-stats">
+            {{ match.color_distribution.violet.count }} bets<br>
+            ₹{{ match.color_distribution.violet.amount|floatformat:0 }}
+          </div>
+          <div class="percentage-bar">
+            <div class="percentage-fill violet" style="width: {{ match.winning_percentage.violet }}%"></div>
+          </div>
+          <div style="font-size: 0.8rem;">{{ match.winning_percentage.violet|floatformat:1 }}%</div>
+        </div>
+      </div>
+
+      <!-- Match Summary -->
+      <div class="match-summary">
+        <div class="total-stats">
+          <span>Total Bets: <strong>{{ match.total_bets }}</strong></span>
+          <span>Total Amount: <strong>₹{{ match.total_amount|floatformat:0 }}</strong></span>
+        </div>
+        <div class="match-duration">
+          Duration: 45s
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="text-center p-4">
+      <div style="font-size: 3rem; margin-bottom: 20px;">🎮</div>
+      <h3>No Recent Matches</h3>
+      <p>Start playing to see your match history here!</p>
+      <a href="{% url 'index' %}" class="btn btn-primary">🎯 Start Playing</a>
+    </div>
+    {% endfor %}
+
+    <!-- Actions -->
+    <div class="actions">
+      <a href="{% url 'user_history' %}" class="btn btn-primary">📊 Detailed History</a>
+      <a href="{% url 'user_profile' %}" class="btn btn-secondary">👤 Profile</a>
+      <a href="{% url 'index' %}" class="btn btn-secondary">🎮 Play Game</a>
+    </div>
+  </div>
+
+  <script src="{% static 'js/main.js' %}"></script>
+</body>
+</html>

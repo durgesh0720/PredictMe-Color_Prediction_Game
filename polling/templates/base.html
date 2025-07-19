@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% block title %}Color Prediction Game{% endblock %}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{% load static %}{% static 'images/favicon.ico' %}">
+    
+    <!-- Main CSS -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    
+    <!-- Page-specific CSS -->
+    {% block extra_css %}{% endblock %}
+    
+    <!-- Meta tags for SEO and social sharing -->
+    <meta name="description" content="{% block description %}Play the exciting color prediction game! Predict colors, place bets, and win big in this thrilling online game.{% endblock %}">
+    <meta name="keywords" content="color prediction, online game, betting, prediction game">
+    <meta name="author" content="Color Prediction Game">
+    
+    <!-- Open Graph tags -->
+    <meta property="og:title" content="{% block og_title %}Color Prediction Game{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Play the exciting color prediction game! Predict colors, place bets, and win big.{% endblock %}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    
+    <!-- CSRF Token for AJAX requests -->
+    {% csrf_token %}
+    
+    <style>
+        /* Page-specific overrides can go here */
+        {% block inline_css %}{% endblock %}
+    </style>
+</head>
+<body class="{% block body_class %}{% endblock %}">
+    <!-- Navigation -->
+    {% block navigation %}
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <a href="{% url 'index' %}" class="brand-link">
+                    🎯 Color Prediction Game
+                </a>
+            </div>
+            
+            <div class="nav-menu">
+                {% if current_user %}
+                    <div class="nav-user">
+                        <div class="nav-user-info">
+                            <div class="nav-avatar">
+                                {% if current_user.avatar %}
+                                    <img src="{{ current_user.avatar.url }}" alt="Avatar" class="nav-avatar-img"
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                    <div class="nav-avatar-default" style="display: none;">
+                                        {{ current_user.username|first|upper }}
+                                    </div>
+                                {% else %}
+                                    <div class="nav-avatar-default">
+                                        {{ current_user.username|first|upper }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="nav-user-details">
+                                <span class="user-greeting">
+                                    Hello, {{ current_user.display_name }}!
+                                    {% if not current_user.email_verified %}
+                                        <span class="verification-badge" title="Email not verified">⚠️</span>
+                                    {% endif %}
+                                </span>
+                                <div class="user-balance">
+                                    Balance: ${{ current_user.balance|floatformat:0 }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="nav-links">
+                            {% include 'includes/notification_center.html' with user=current_user %}
+                            <a href="{% url 'user_profile' %}" class="nav-link">Profile</a>
+                            <a href="{% url 'wallet_management' %}" class="nav-link">Wallet</a>
+                            <a href="{% url 'user_history' %}" class="nav-link">History</a>
+                            <a href="{% url 'logout' %}" class="nav-link">Logout</a>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="nav-auth">
+                        <a href="{% url 'login' %}" class="btn btn-outline">Login</a>
+                        <a href="{% url 'register' %}" class="btn">Register</a>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Mobile menu toggle -->
+            <button class="nav-toggle" id="navToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+    {% endblock %}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Messages -->
+        {% if messages %}
+            <div class="messages-container">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Page Content -->
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    {% block footer %}
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>Game</h4>
+                    <ul>
+                        <li><a href="{% url 'index' %}">Home</a></li>
+                        <!-- <li><a href="{% url 'game_history' %}">Game History</a></li> -->
+                        {% if current_user %}
+                            <li><a href="{% url 'user_history' %}">My Bets</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Account</h4>
+                    <ul>
+                        {% if current_user %}
+                            <li><a href="{% url 'user_profile' %}">Profile</a></li>
+                            <li><a href="{% url 'wallet_management' %}">Wallet</a></li>
+                            <li><a href="{% url 'transaction_history' %}">Transactions</a></li>
+                        {% else %}
+                            <li><a href="{% url 'login' %}">Login</a></li>
+                            <li><a href="{% url 'register' %}">Register</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#" onclick="notify.info('Contact support at support@colorprediction.com')">Contact</a></li>
+                        <li><a href="#" onclick="notify.info('FAQ coming soon!')">FAQ</a></li>
+                        <li><a href="#" onclick="notify.info('Terms coming soon!')">Terms</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2024 Color Prediction Game. All rights reserved.</p>
+                <p class="footer-disclaimer">
+                    Play responsibly. This is a game of chance.
+                </p>
+            </div>
+        </div>
+    </footer>
+    {% endblock %}
+
+    <!-- Notification Container -->
+    <div class="notification-container"></div>
+
+    <!-- Scripts -->
+    <script src="{% static 'js/main.js' %}"></script>
+    
+    <!-- Page-specific JavaScript -->
+    {% block extra_js %}{% endblock %}
+    
+    <script>
+        // Global JavaScript that runs on every page
+        {% block inline_js %}{% endblock %}
+        
+        // Mobile navigation toggle
+        document.addEventListener('DOMContentLoaded', function() {
+            const navToggle = document.getElementById('navToggle');
+            const navMenu = document.querySelector('.nav-menu');
+            
+            if (navToggle && navMenu) {
+                navToggle.addEventListener('click', function() {
+                    navMenu.classList.toggle('active');
+                    navToggle.classList.toggle('active');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

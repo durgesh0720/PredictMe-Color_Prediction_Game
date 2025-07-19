@@ -1,0 +1,675 @@
+{% extends 'admin/modern_base.html' %}
+{% load math_filters %}
+
+{% block title %}Game Reports{% endblock %}
+{% block page_title %}Game Reports & Analytics{% endblock %}
+
+{% block extra_css %}
+<style>
+    .reports-header {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: white;
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    
+    .date-filter {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+    }
+    
+    .filter-form {
+        display: flex;
+        gap: 1rem;
+        align-items: end;
+        flex-wrap: wrap;
+    }
+    
+    .filter-group {
+        flex: 1;
+        min-width: 150px;
+    }
+    
+    .filter-label {
+        display: block;
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .filter-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+    
+    .filter-input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+    
+    .filter-btn {
+        padding: 0.75rem 1.5rem;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: var(--radius);
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .filter-btn:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+    }
+    
+    .analytics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .analytics-card {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .analytics-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+    }
+    
+    .analytics-card.games::before { background: var(--info); }
+    .analytics-card.bets::before { background: var(--success); }
+    .analytics-card.players::before { background: var(--warning); }
+    .analytics-card.revenue::before { background: var(--danger); }
+    
+    .analytics-header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .analytics-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.25rem;
+    }
+    
+    .analytics-card.games .analytics-icon { background: var(--info); }
+    .analytics-card.bets .analytics-icon { background: var(--success); }
+    .analytics-card.players .analytics-icon { background: var(--warning); }
+    .analytics-card.revenue .analytics-icon { background: var(--danger); }
+    
+    .analytics-trend {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: var(--radius);
+        font-weight: 500;
+    }
+    
+    .trend-up {
+        background: #dcfce7;
+        color: #166534;
+    }
+    
+    .trend-down {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+    
+    .analytics-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+    
+    .analytics-label {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .analytics-description {
+        color: var(--text-light);
+        font-size: 0.75rem;
+    }
+    
+    .charts-section {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .chart-card {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+        overflow: hidden;
+    }
+    
+    .chart-header {
+        background: var(--bg-main);
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: between;
+        align-items: center;
+    }
+    
+    .chart-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .chart-container {
+        padding: 1.5rem;
+        height: 300px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        color: var(--text-light);
+        font-size: 1.125rem;
+    }
+    
+    .color-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1rem;
+        padding: 1.5rem;
+    }
+    
+    .color-stat {
+        text-align: center;
+        padding: 1rem;
+        border-radius: var(--radius);
+        background: var(--bg-main);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .color-stat::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+    }
+    
+    .color-stat.red::before { background: #ef4444; }
+    .color-stat.green::before { background: #10b981; }
+    .color-stat.violet::before { background: #8b5cf6; }
+    .color-stat.blue::before { background: #3b82f6; }
+    
+    .color-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        margin: 0 auto 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.875rem;
+    }
+    
+    .color-icon.red { background: #ef4444; }
+    .color-icon.green { background: #10b981; }
+    .color-icon.violet { background: #8b5cf6; }
+    .color-icon.blue { background: #3b82f6; }
+    
+    .color-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+    }
+    
+    .color-label {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .detailed-reports {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+        overflow: hidden;
+    }
+    
+    .reports-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .reports-table th,
+    .reports-table td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid var(--border-light);
+    }
+    
+    .reports-table th {
+        background: var(--bg-main);
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .reports-table td {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+    
+    .reports-table tr:hover {
+        background: var(--bg-main);
+    }
+    
+    .game-type-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .game-parity {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+    
+    .game-sapre {
+        background: #dcfce7;
+        color: #166534;
+    }
+    
+    .game-bcone {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    
+    .game-noki {
+        background: #fce7f3;
+        color: #be185d;
+    }
+    
+    .win-rate {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .win-rate-bar {
+        flex: 1;
+        height: 6px;
+        background: var(--border-light);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+    
+    .win-rate-fill {
+        height: 100%;
+        background: var(--success);
+        transition: width 0.3s ease;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: var(--text-light);
+    }
+    
+    .empty-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.3;
+    }
+    
+    @media (max-width: 1024px) {
+        .charts-section {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .filter-form {
+            flex-direction: column;
+        }
+        
+        .filter-group {
+            min-width: 100%;
+        }
+        
+        .analytics-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .color-stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .reports-table {
+            font-size: 0.75rem;
+        }
+        
+        .reports-table th,
+        .reports-table td {
+            padding: 0.75rem 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Reports Header -->
+<div class="reports-header">
+    <h2>Game Reports & Analytics</h2>
+    <p>Comprehensive insights into game performance and player behavior</p>
+</div>
+
+<!-- Date Filter -->
+<div class="date-filter">
+    <form method="get" class="filter-form">
+        <div class="filter-group">
+            <label class="filter-label">From Date</label>
+            <input type="date" name="from_date" class="filter-input" 
+                   value="{{ request.GET.from_date }}">
+        </div>
+        <div class="filter-group">
+            <label class="filter-label">To Date</label>
+            <input type="date" name="to_date" class="filter-input" 
+                   value="{{ request.GET.to_date }}">
+        </div>
+        <div class="filter-group">
+            <label class="filter-label">Game Type</label>
+            <select name="game_type" class="filter-input">
+                <option value="">All Games</option>
+                <option value="parity" {% if request.GET.game_type == 'parity' %}selected{% endif %}>Parity</option>
+                <option value="sapre" {% if request.GET.game_type == 'sapre' %}selected{% endif %}>Sapre</option>
+                <option value="bcone" {% if request.GET.game_type == 'bcone' %}selected{% endif %}>BC One</option>
+                <option value="noki" {% if request.GET.game_type == 'noki' %}selected{% endif %}>Noki</option>
+            </select>
+        </div>
+        <button type="submit" class="filter-btn">
+            <i class="fas fa-filter"></i>
+            Apply Filter
+        </button>
+    </form>
+</div>
+
+<!-- Analytics Overview -->
+<div class="analytics-grid">
+    <div class="analytics-card games">
+        <div class="analytics-header">
+            <div class="analytics-icon">
+                <i class="fas fa-gamepad"></i>
+            </div>
+            <div class="analytics-trend trend-up">
+                <i class="fas fa-arrow-up"></i> +5.2%
+            </div>
+        </div>
+        <div class="analytics-value">{{ total_games|default:"0" }}</div>
+        <div class="analytics-label">Total Games</div>
+        <div class="analytics-description">Games played in selected period</div>
+    </div>
+    
+    <div class="analytics-card bets">
+        <div class="analytics-header">
+            <div class="analytics-icon">
+                <i class="fas fa-coins"></i>
+            </div>
+            <div class="analytics-trend trend-up">
+                <i class="fas fa-arrow-up"></i> +12.8%
+            </div>
+        </div>
+        <div class="analytics-value">{{ total_bets|default:"0" }}</div>
+        <div class="analytics-label">Total Bets</div>
+        <div class="analytics-description">All bets placed</div>
+    </div>
+    
+    <div class="analytics-card players">
+        <div class="analytics-header">
+            <div class="analytics-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="analytics-trend trend-up">
+                <i class="fas fa-arrow-up"></i> +8.3%
+            </div>
+        </div>
+        <div class="analytics-value">{{ unique_players|default:"0" }}</div>
+        <div class="analytics-label">Unique Players</div>
+        <div class="analytics-description">Active participants</div>
+    </div>
+    
+    <div class="analytics-card revenue">
+        <div class="analytics-header">
+            <div class="analytics-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="analytics-trend trend-up">
+                <i class="fas fa-arrow-up"></i> +15.7%
+            </div>
+        </div>
+        <div class="analytics-value">₹{{ total_revenue|default:"0" }}</div>
+        <div class="analytics-label">Total Revenue</div>
+        <div class="analytics-description">House earnings</div>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="charts-section">
+    <!-- Game Trends Chart -->
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3 class="chart-title">
+                <i class="fas fa-chart-area"></i>
+                Game Activity Trends
+            </h3>
+        </div>
+        <div class="chart-container">
+            <i class="fas fa-chart-line"></i>
+            Interactive game trends chart will be implemented here
+        </div>
+    </div>
+    
+    <!-- Color Statistics -->
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3 class="chart-title">
+                <i class="fas fa-palette"></i>
+                Color Betting Stats
+            </h3>
+        </div>
+        <div class="color-stats-grid">
+            {% for color, stats in color_stats.items %}
+            <div class="color-stat {{ color }}">
+                <div class="color-icon {{ color }}">
+                    <i class="fas fa-circle"></i>
+                </div>
+                <div class="color-value">{{ stats.count|default:"0" }}</div>
+                <div class="color-label">{{ color|title }}</div>
+            </div>
+            {% empty %}
+            <div class="color-stat red">
+                <div class="color-icon red">
+                    <i class="fas fa-circle"></i>
+                </div>
+                <div class="color-value">0</div>
+                <div class="color-label">Red</div>
+            </div>
+            <div class="color-stat green">
+                <div class="color-icon green">
+                    <i class="fas fa-circle"></i>
+                </div>
+                <div class="color-value">0</div>
+                <div class="color-label">Green</div>
+            </div>
+            <div class="color-stat violet">
+                <div class="color-icon violet">
+                    <i class="fas fa-circle"></i>
+                </div>
+                <div class="color-value">0</div>
+                <div class="color-label">Violet</div>
+            </div>
+            <div class="color-stat blue">
+                <div class="color-icon blue">
+                    <i class="fas fa-circle"></i>
+                </div>
+                <div class="color-value">0</div>
+                <div class="color-label">Blue</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Reports Table -->
+<div class="detailed-reports">
+    <div class="chart-header">
+        <h3 class="chart-title">
+            <i class="fas fa-table"></i>
+            Detailed Game Reports
+        </h3>
+        <div class="section-actions">
+            <button class="btn-sm btn-primary" onclick="exportReports()">
+                <i class="fas fa-download"></i>
+                Export
+            </button>
+        </div>
+    </div>
+    
+    {% if game_stats %}
+    <table class="reports-table">
+        <thead>
+            <tr>
+                <th>Game Type</th>
+                <th>Games</th>
+                <th>Total Bets</th>
+                <th>Revenue</th>
+                <th>Avg Bet</th>
+                <th>Win Rate</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for stat in game_stats %}
+            <tr>
+                <td>
+                    <span class="game-type-badge game-{{ stat.game_type }}">
+                        {{ stat.game_type|title }}
+                    </span>
+                </td>
+                <td>{{ stat.total_games|default:"0" }}</td>
+                <td>{{ stat.total_bets|default:"0" }}</td>
+                <td>₹{{ stat.revenue|default:"0" }}</td>
+                <td>₹{{ stat.avg_bet|default:"0" }}</td>
+                <td>
+                    <div class="win-rate">
+                        <span>{{ stat.win_rate|default:"0" }}%</span>
+                        <div class="win-rate-bar">
+                            <div class="win-rate-fill" style="width: {{ stat.win_rate|default:"0" }}%"></div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">
+            <i class="fas fa-chart-bar"></i>
+        </div>
+        <h3>No Data Available</h3>
+        <p>No game data found for the selected period.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Quick Actions -->
+<div class="d-flex gap-2 mt-4">
+    <a href="{% url 'admin_financial' %}" class="btn btn-primary">
+        <i class="fas fa-chart-pie"></i> Financial Reports
+    </a>
+    <a href="{% url 'admin_user_management' %}" class="btn btn-secondary">
+        <i class="fas fa-users"></i> Player Analytics
+    </a>
+    <button class="btn btn-secondary" onclick="generateReport()">
+        <i class="fas fa-file-pdf"></i> Generate PDF
+    </button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function exportReports() {
+        alert('Export functionality will be implemented');
+    }
+    
+    function generateReport() {
+        alert('PDF generation will be implemented');
+    }
+    
+    // Set default dates if not provided
+    document.addEventListener('DOMContentLoaded', function() {
+        const fromDate = document.querySelector('input[name="from_date"]');
+        const toDate = document.querySelector('input[name="to_date"]');
+        
+        if (!fromDate.value) {
+            const date = new Date();
+            date.setDate(date.getDate() - 7);
+            fromDate.value = date.toISOString().split('T')[0];
+        }
+        
+        if (!toDate.value) {
+            const date = new Date();
+            toDate.value = date.toISOString().split('T')[0];
+        }
+    });
+</script>
+{% endblock %}

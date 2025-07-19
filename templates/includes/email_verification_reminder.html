@@ -1,0 +1,155 @@
+{% comment %}
+Email Verification Reminder Component
+Include this in templates where you want to show email verification reminders
+Usage: {% include 'includes/email_verification_reminder.html' with user=current_user %}
+{% endcomment %}
+
+{% if user and not user.email_verified %}
+<div class="email-verification-reminder" style="
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 2px solid #f59e0b;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin: 15px 0;
+    box-shadow: 0 4px 6px rgba(245, 158, 11, 0.1);
+    position: relative;
+    overflow: hidden;
+">
+    <!-- Animated background pattern -->
+    <div style="
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: 
+            radial-gradient(circle at 20% 50%, rgba(245, 158, 11, 0.1) 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, rgba(245, 158, 11, 0.1) 0%, transparent 50%),
+            radial-gradient(circle at 40% 80%, rgba(245, 158, 11, 0.1) 0%, transparent 50%);
+        animation: float 6s ease-in-out infinite;
+    "></div>
+    
+    <div style="position: relative; z-index: 1;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+            <div style="
+                font-size: 24px;
+                animation: pulse 2s infinite;
+            ">⚠️</div>
+            <div>
+                <h4 style="
+                    margin: 0;
+                    color: #92400e;
+                    font-size: 16px;
+                    font-weight: 600;
+                ">Email Verification Required</h4>
+                <p style="
+                    margin: 4px 0 0 0;
+                    color: #b45309;
+                    font-size: 14px;
+                    line-height: 1.4;
+                ">Please verify your email address to secure your account and access all features.</p>
+            </div>
+        </div>
+        
+        <div style="
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        ">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <span style="font-size: 16px;">📧</span>
+                <span style="color: #92400e; font-size: 14px; font-weight: 500;">
+                    Verification email sent to: <strong>{{ user.email }}</strong>
+                </span>
+            </div>
+            <p style="
+                margin: 0;
+                color: #b45309;
+                font-size: 13px;
+                line-height: 1.4;
+            ">Check your inbox (and spam folder) for the verification code.</p>
+        </div>
+        
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <form method="post" action="{% url 'resend_verification_email' %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" style="
+                    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                    color: white;
+                    border: none;
+                    padding: 8px 16px;
+                    border-radius: 6px;
+                    font-size: 14px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+                " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 8px rgba(245, 158, 11, 0.4)'"
+                   onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(245, 158, 11, 0.3)'"
+                   onclick="
+                     this.disabled=true;
+                     this.innerHTML='📤 Sending...';
+                     setTimeout(() => {
+                       this.form.submit();
+                     }, 500);
+                   ">
+                    📤 Resend Verification Email
+                </button>
+            </form>
+            
+            <a href="{% url 'verify_otp' %}" style="
+                background: rgba(255, 255, 255, 0.9);
+                color: #92400e;
+                border: 2px solid #f59e0b;
+                padding: 6px 14px;
+                border-radius: 6px;
+                font-size: 14px;
+                font-weight: 500;
+                text-decoration: none;
+                transition: all 0.2s ease;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+            " onmouseover="this.style.background='rgba(255, 255, 255, 1)'; this.style.transform='translateY(-1px)'"
+               onmouseout="this.style.background='rgba(255, 255, 255, 0.9)'; this.style.transform='translateY(0)'">
+                🔐 Enter Verification Code
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    33% { transform: translateY(-10px) rotate(1deg); }
+    66% { transform: translateY(5px) rotate(-1deg); }
+}
+
+@media (max-width: 480px) {
+    .email-verification-reminder {
+        margin: 10px 0 !important;
+        padding: 12px 16px !important;
+    }
+    
+    .email-verification-reminder h4 {
+        font-size: 15px !important;
+    }
+    
+    .email-verification-reminder p {
+        font-size: 13px !important;
+    }
+    
+    .email-verification-reminder button,
+    .email-verification-reminder a {
+        font-size: 13px !important;
+        padding: 6px 12px !important;
+    }
+}
+</style>
+{% endif %}

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Register - Color Prediction Game</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      margin: 0;
+      padding: 20px 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      max-width: 500px;
+      width: 100%;
+      background: #fff;
+      border-radius: 15px;
+      padding: 40px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 2.2rem;
+      color: #1f2937;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 1rem;
+      color: #6b7280;
+      margin-bottom: 30px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-row {
+      display: flex;
+      gap: 15px;
+    }
+    .form-row .form-group {
+      flex: 1;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #374151;
+    }
+    input[type="text"], input[type="email"], input[type="password"], input[type="tel"], input[type="date"], textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.3s ease;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    .btn {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+      margin-bottom: 15px;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+    .btn-secondary {
+      background: #6b7280;
+      text-decoration: none;
+      display: block;
+      text-align: center;
+    }
+    .error-list {
+      background: #fee2e2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    .error-list ul {
+      margin: 0;
+      padding-left: 20px;
+      color: #dc2626;
+    }
+    .required {
+      color: #dc2626;
+    }
+    .help-text {
+      font-size: 0.9rem;
+      color: #6b7280;
+      margin-top: 5px;
+    }
+    .login-link {
+      text-align: center;
+      margin-top: 20px;
+      color: #6b7280;
+    }
+    .login-link a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .login-link a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎮 Join the Game</h1>
+    <p class="subtitle">Create your account to start playing</p>
+
+    {% if errors %}
+    <div class="error-list">
+      <ul>
+        {% for error in errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      
+      <div class="form-group">
+        <label for="username">Username <span class="required">*</span></label>
+        <input type="text" id="username" name="username" required 
+               value="{{ username|default:'' }}" 
+               placeholder="Choose a unique username">
+        <div class="help-text">3-20 characters, letters, numbers, underscore, and hyphen only</div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email Address <span class="required">*</span></label>
+        <input type="email" id="email" name="email" required 
+               value="{{ email|default:'' }}" 
+               placeholder="your.email@example.com">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="first_name">First Name</label>
+          <input type="text" id="first_name" name="first_name" 
+                 value="{{ first_name|default:'' }}" 
+                 placeholder="Your first name">
+        </div>
+        <div class="form-group">
+          <label for="last_name">Last Name</label>
+          <input type="text" id="last_name" name="last_name" 
+                 value="{{ last_name|default:'' }}" 
+                 placeholder="Your last name">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="phone_number">Phone Number</label>
+        <input type="tel" id="phone_number" name="phone_number" 
+               value="{{ phone_number|default:'' }}" 
+               placeholder="+1234567890">
+        <div class="help-text">Optional: Format: +1234567890</div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password <span class="required">*</span></label>
+        <input type="password" id="password" name="password" required 
+               placeholder="Create a strong password">
+        <div class="help-text">Minimum 8 characters</div>
+      </div>
+
+      <div class="form-group">
+        <label for="confirm_password">Confirm Password <span class="required">*</span></label>
+        <input type="password" id="confirm_password" name="confirm_password" required 
+               placeholder="Confirm your password">
+      </div>
+
+      <button type="submit" class="btn">🚀 Create Account</button>
+    </form>
+
+    <div class="login-link">
+      Already have an account? <a href="{% url 'login' %}">Sign in here</a>
+    </div>
+
+    <a href="{% url 'index' %}" class="btn btn-secondary">← Back to Home</a>
+  </div>
+
+  <script>
+    // Password confirmation validation
+    document.getElementById('confirm_password').addEventListener('input', function() {
+      const password = document.getElementById('password').value;
+      const confirmPassword = this.value;
+      
+      if (password !== confirmPassword) {
+        this.setCustomValidity('Passwords do not match');
+      } else {
+        this.setCustomValidity('');
+      }
+    });
+
+    // Real-time username validation
+    document.getElementById('username').addEventListener('input', function() {
+      const username = this.value;
+      const regex = /^[a-zA-Z0-9_-]+$/;
+      
+      if (username.length > 0 && !regex.test(username)) {
+        this.setCustomValidity('Username can only contain letters, numbers, underscore, and hyphen');
+      } else if (username.length > 0 && (username.length < 3 || username.length > 20)) {
+        this.setCustomValidity('Username must be between 3 and 20 characters');
+      } else {
+        this.setCustomValidity('');
+      }
+    });
+  </script>
+</body>
+</html>

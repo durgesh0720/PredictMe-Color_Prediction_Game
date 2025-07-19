@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Razorpay Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #e3f2fd;
+            color: #0d47a1;
+            border: 1px solid #bbdefb;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Razorpay Integration Test</h1>
+    
+    <div id="test-results"></div>
+    
+    <h2>Manual Tests</h2>
+    <button onclick="testRazorpayAvailable()">Test Razorpay Available</button>
+    <button onclick="testCreateOrder()">Test Create Order</button>
+    <button onclick="testRazorpayCheckout()">Test Razorpay Checkout</button>
+    
+    <h2>Configuration</h2>
+    <div class="info">
+        <strong>Razorpay Key ID:</strong> {{ razorpay_key_id }}<br>
+        <strong>API Base URL:</strong> /api/payment/<br>
+        <strong>Environment:</strong> Test Mode
+    </div>
+
+    <!-- Razorpay Script -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js" 
+            onload="logResult('✅ Razorpay script loaded successfully', 'success')"
+            onerror="logResult('❌ Failed to load Razorpay script', 'error')"></script>
+
+    <script>
+        const RAZORPAY_KEY_ID = '{{ razorpay_key_id }}';
+        const API_BASE_URL = '/api/payment/';
+        
+        function logResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            resultDiv.innerHTML = `${new Date().toLocaleTimeString()}: ${message}`;
+            resultsDiv.appendChild(resultDiv);
+            console.log(message);
+        }
+        
+        function testRazorpayAvailable() {
+            if (typeof Razorpay !== 'undefined') {
+                logResult('✅ Razorpay is available and ready', 'success');
+                logResult(`📋 Razorpay version: ${Razorpay.version || 'Unknown'}`, 'info');
+            } else {
+                logResult('❌ Razorpay is not available', 'error');
+            }
+        }
+        
+        async function testCreateOrder() {
+            try {
+                logResult('🔄 Testing order creation...', 'info');
+                
+                const response = await fetch(API_BASE_URL + 'create-deposit-order/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        amount: 10,
+                        description: 'Test order',
+                        currency: 'INR'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    logResult(`✅ Order created: ${data.order_id}`, 'success');
+                    logResult(`💰 Amount: ₹${data.amount / 100}`, 'info');
+                } else {
+                    logResult(`❌ Order creation failed: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                logResult(`❌ Order creation error: ${error.message}`, 'error');
+            }
+        }
+        
+        function testRazorpayCheckout() {
+            if (typeof Razorpay === 'undefined') {
+                logResult('❌ Razorpay not available for checkout test', 'error');
+                return;
+            }
+            
+            logResult('🔄 Testing Razorpay checkout...', 'info');
+            
+            const options = {
+                key: RAZORPAY_KEY_ID,
+                amount: 1000, // ₹10 in paise
+                currency: 'INR',
+                name: 'Test Payment',
+                description: 'Test transaction',
+                handler: function(response) {
+                    logResult(`✅ Payment successful: ${response.razorpay_payment_id}`, 'success');
+                },
+                prefill: {
+                    name: 'Test User',
+                    email: 'test@example.com',
+                    contact: '9999999999'
+                },
+                theme: {
+                    color: '#007bff'
+                },
+                modal: {
+                    ondismiss: function() {
+                        logResult('ℹ️ Payment modal dismissed', 'info');
+                    }
+                }
+            };
+            
+            try {
+                const rzp = new Razorpay(options);
+                rzp.open();
+                logResult('✅ Razorpay checkout opened successfully', 'success');
+            } catch (error) {
+                logResult(`❌ Razorpay checkout error: ${error.message}`, 'error');
+            }
+        }
+        
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        // Run automatic tests when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            logResult('🚀 Starting Razorpay integration tests...', 'info');
+            logResult(`🔑 Using Key ID: ${RAZORPAY_KEY_ID}`, 'info');
+            
+            // Test script loading
+            setTimeout(() => {
+                testRazorpayAvailable();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

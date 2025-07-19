@@ -1,0 +1,515 @@
+{% extends 'admin/modern_base.html' %}
+
+{% block page_title %}Game Control{% endblock %}
+
+{% block extra_css %}
+<style>
+    .game-status-card {
+        background: linear-gradient(135deg, var(--primary), var(--info));
+        color: white;
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    
+    .status-indicator {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 0.5rem;
+        animation: pulse 2s infinite;
+    }
+    
+    .status-indicator.active {
+        background: #10b981;
+    }
+    
+    .status-indicator.inactive {
+        background: #ef4444;
+    }
+    
+    .countdown-display {
+        font-size: 3rem;
+        font-weight: 700;
+        margin: 1rem 0;
+    }
+    
+    .color-selection {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .color-option {
+        background: var(--bg-card);
+        border: 2px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    
+    .color-option:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow);
+    }
+    
+    .color-option.selected {
+        border-color: var(--primary);
+        background: var(--primary);
+        color: white;
+    }
+    
+    .color-circle {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        margin: 0 auto 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+    }
+    
+    .color-circle.red {
+        background: #ef4444;
+    }
+    
+    .color-circle.green {
+        background: #10b981;
+    }
+    
+    .color-circle.violet {
+        background: #8b5cf6;
+    }
+    
+    .color-name {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .color-stats {
+        font-size: 0.875rem;
+        opacity: 0.8;
+    }
+    
+    .control-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+    
+    .control-btn {
+        padding: 1rem 2rem;
+        border: none;
+        border-radius: var(--radius);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1rem;
+    }
+    
+    .control-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow);
+    }
+    
+    .control-btn.start {
+        background: var(--success);
+        color: white;
+    }
+    
+    .control-btn.stop {
+        background: var(--danger);
+        color: white;
+    }
+    
+    .control-btn.result {
+        background: var(--warning);
+        color: white;
+    }
+    
+    .live-bets {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+    }
+    
+    .bet-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .bet-summary-item {
+        text-align: center;
+        padding: 1rem;
+        border-radius: var(--radius);
+        background: var(--bg-main);
+    }
+    
+    .bet-amount {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+    
+    .bet-count {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+    
+    .recent-rounds {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    .round-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-light);
+    }
+    
+    .round-item:last-child {
+        border-bottom: none;
+    }
+    
+    .round-result {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+    
+    .round-info {
+        flex: 1;
+    }
+    
+    .round-period {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .round-time {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+    
+    .round-stats {
+        text-align: right;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+    
+    .alert {
+        padding: 1rem;
+        border-radius: var(--radius);
+        margin-bottom: 1rem;
+        border: 1px solid;
+    }
+    
+    .alert-info {
+        background: #dbeafe;
+        border-color: #3b82f6;
+        color: #1e40af;
+    }
+    
+    .alert-warning {
+        background: #fef3c7;
+        border-color: #f59e0b;
+        color: #92400e;
+    }
+    
+    .alert-success {
+        background: #d1fae5;
+        border-color: #10b981;
+        color: #065f46;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Game Status -->
+<div class="game-status-card">
+    <div>
+        <span class="status-indicator active"></span>
+        <strong>Game Status: Active</strong>
+    </div>
+    <div class="countdown-display" id="countdown">00:45</div>
+    <div>Round {{ current_round.period_id|default:"Loading..." }}</div>
+</div>
+
+<!-- Live Betting Summary -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-chart-pie"></i> Live Betting Summary
+        </h3>
+    </div>
+    <div class="bet-summary" id="bet-summary">
+        <div class="bet-summary-item">
+            <div class="bet-amount text-danger" id="red-total">₹0</div>
+            <div class="bet-count" id="red-bets">0 bets on Red</div>
+        </div>
+        <div class="bet-summary-item">
+            <div class="bet-amount text-success" id="green-total">₹0</div>
+            <div class="bet-count" id="green-bets">0 bets on Green</div>
+        </div>
+        <div class="bet-summary-item">
+            <div class="bet-amount" style="color: #8b5cf6;" id="violet-total">₹0</div>
+            <div class="bet-count" id="violet-bets">0 bets on Violet</div>
+        </div>
+        <div class="bet-summary-item">
+            <div class="bet-amount text-info" id="total-amount">₹0</div>
+            <div class="bet-count" id="total-bets">Total Bets</div>
+        </div>
+    </div>
+</div>
+
+<!-- Color Selection for Result -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-palette"></i> Select Winning Color
+        </h3>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            Select the winning color for the current round. You have 10 seconds after betting ends to make your selection.
+        </div>
+        
+        <div class="color-selection">
+            <div class="color-option" data-color="red" onclick="selectColor('red')">
+                <div class="color-circle red">
+                    <i class="fas fa-circle"></i>
+                </div>
+                <div class="color-name">Red</div>
+                <div class="color-stats" id="red-percentage">0% of bets</div>
+            </div>
+            
+            <div class="color-option" data-color="green" onclick="selectColor('green')">
+                <div class="color-circle green">
+                    <i class="fas fa-circle"></i>
+                </div>
+                <div class="color-name">Green</div>
+                <div class="color-stats" id="green-percentage">0% of bets</div>
+            </div>
+            
+            <div class="color-option" data-color="violet" onclick="selectColor('violet')">
+                <div class="color-circle violet">
+                    <i class="fas fa-circle"></i>
+                </div>
+                <div class="color-name">Violet</div>
+                <div class="color-stats" id="violet-percentage">0% of bets</div>
+            </div>
+        </div>
+        
+        <div class="control-buttons">
+            <button class="control-btn result" onclick="submitResult()" id="submit-result" disabled>
+                <i class="fas fa-check"></i> Submit Result
+            </button>
+            <button class="control-btn start" onclick="startNewRound()">
+                <i class="fas fa-play"></i> Start New Round
+            </button>
+            <button class="control-btn stop" onclick="stopGame()">
+                <i class="fas fa-stop"></i> Stop Game
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Rounds -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-history"></i> Recent Rounds
+        </h3>
+    </div>
+    <div class="card-body">
+        <div class="recent-rounds">
+            {% for round in recent_rounds %}
+            <div class="round-item">
+                <div class="round-result {{ round.result_color }}" style="background: {% if round.result_color == 'red' %}#ef4444{% elif round.result_color == 'green' %}#10b981{% else %}#8b5cf6{% endif %};">
+                    {{ round.result_number }}
+                </div>
+                <div class="round-info">
+                    <div class="round-period">Round {{ round.period_id }}</div>
+                    <div class="round-time">{{ round.end_time|date:"M d, H:i" }}</div>
+                </div>
+                <div class="round-stats">
+                    <div>{{ round.total_bets }} bets</div>
+                    <div>₹{{ round.total_amount|default:"0" }}</div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center text-muted" style="padding: 2rem;">
+                <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                <div>No rounds yet</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let selectedColor = null;
+    
+    function selectColor(color) {
+        selectedColor = color;
+        
+        // Update UI
+        document.querySelectorAll('.color-option').forEach(option => {
+            option.classList.remove('selected');
+        });
+        
+        document.querySelector(`[data-color="${color}"]`).classList.add('selected');
+        document.getElementById('submit-result').disabled = false;
+    }
+    
+    function submitResult() {
+        if (!selectedColor) {
+            alert('Please select a color first');
+            return;
+        }
+        
+        // Submit the result
+        fetch('/control-panel/api/submit-result/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                color: selectedColor
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Result submitted successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to submit result');
+        });
+    }
+    
+    function startNewRound() {
+        fetch('/control-panel/api/start-round/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        });
+    }
+    
+    function stopGame() {
+        if (confirm('Are you sure you want to stop the game?')) {
+            fetch('/control-panel/api/stop-game/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            });
+        }
+    }
+    
+    function updateBettingStats() {
+        fetch('/control-panel/api/live-betting-stats/')
+            .then(response => response.json())
+            .then(data => {
+                let totalAmount = 0;
+                let totalBets = 0;
+                
+                // Calculate totals
+                Object.values(data).forEach(colorData => {
+                    totalAmount += colorData.amount;
+                    totalBets += colorData.count;
+                });
+                
+                // Update displays
+                ['red', 'green', 'violet'].forEach(color => {
+                    const amount = data[color]?.amount || 0;
+                    const count = data[color]?.count || 0;
+                    const percentage = totalAmount > 0 ? ((amount / totalAmount) * 100).toFixed(1) : 0;
+                    
+                    document.getElementById(`${color}-total`).textContent = `₹${amount}`;
+                    document.getElementById(`${color}-bets`).textContent = `${count} bets on ${color.charAt(0).toUpperCase() + color.slice(1)}`;
+                    document.getElementById(`${color}-percentage`).textContent = `${percentage}% of bets`;
+                });
+                
+                document.getElementById('total-amount').textContent = `₹${totalAmount}`;
+                document.getElementById('total-bets').textContent = `${totalBets} Total Bets`;
+            })
+            .catch(error => {
+                console.error('Error fetching betting stats:', error);
+            });
+    }
+    
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Auto-refresh betting stats every 3 seconds
+    setInterval(updateBettingStats, 3000);
+    
+    // Initial load
+    updateBettingStats();
+</script>
+{% endblock %}

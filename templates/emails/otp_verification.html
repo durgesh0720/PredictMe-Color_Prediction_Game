@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Verification - {{ site_name }}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        .title {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .otp-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .otp-code {
+            font-size: 2.5rem;
+            font-weight: bold;
+            letter-spacing: 8px;
+            margin: 10px 0;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🎮</div>
+            <h1 class="title">{{ site_name }}</h1>
+            <h2>Email Verification Required</h2>
+        </div>
+        
+        <p>Hello,</p>
+        
+        <p>Welcome to {{ site_name }}! To complete your registration and secure your account, please verify your email address using the verification code below:</p>
+        
+        <div class="otp-box">
+            <div>Your Verification Code:</div>
+            <div class="otp-code">{{ otp_code }}</div>
+            <div>Valid for {{ expires_in }} minutes</div>
+        </div>
+        
+        <div class="warning">
+            <strong>⚠️ Security Notice:</strong>
+            <ul>
+                <li>This code will expire in <strong>{{ expires_in }} minutes</strong></li>
+                <li>Never share this code with anyone</li>
+                <li>If you didn't request this code, please ignore this email</li>
+            </ul>
+        </div>
+        
+        <p>After verification, you'll be able to:</p>
+        <ul>
+            <li>🎯 Place bets on color predictions</li>
+            <li>💰 Deposit and manage your wallet</li>
+            <li>📊 Track your gaming statistics</li>
+            <li>🏆 Win real money prizes</li>
+        </ul>
+        
+        <div class="footer">
+            <p>This is an automated message from {{ site_name }}.<br>
+            If you have any questions, please contact our support team.</p>
+            <p><strong>Happy Gaming! 🎮</strong></p>
+        </div>
+    </div>
+</body>
+</html>

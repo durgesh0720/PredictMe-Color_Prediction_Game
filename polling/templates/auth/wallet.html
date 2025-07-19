@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Wallet - Color Prediction Game</title>
+
+  <!-- Load the enhanced CSS framework -->
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+
+  <style>
+    /* Wallet Page Specific Styles */
+    body {
+      background: var(--primary-gradient);
+      min-height: 100vh;
+      padding: var(--space-6) var(--space-4);
+    }
+
+    .wallet-container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .wallet-header {
+      text-align: center;
+      margin-bottom: var(--space-8);
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      color: var(--primary-color);
+      text-decoration: none;
+      font-weight: var(--font-semibold);
+      margin-bottom: var(--space-6);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--border-radius);
+      transition: var(--transition-smooth);
+    }
+
+    .back-link:hover {
+      background: var(--primary-50);
+      transform: translateX(-2px);
+    }
+    .add-money-card {
+      background: var(--background-primary);
+      border-radius: var(--border-radius-xl);
+      padding: var(--space-8);
+      margin-bottom: var(--space-8);
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border-color);
+    }
+
+    .add-money-title {
+      font-size: var(--text-2xl);
+      font-weight: var(--font-bold);
+      margin-bottom: var(--space-6);
+      color: var(--text-primary);
+      text-align: center;
+    }
+
+    .amount-buttons {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: var(--space-3);
+      margin-bottom: var(--space-6);
+    }
+
+    .amount-btn {
+      padding: var(--space-4);
+      border: var(--border-width-thick) solid var(--primary-color);
+      background: var(--background-primary);
+      color: var(--primary-color);
+      border-radius: var(--border-radius-lg);
+      cursor: pointer;
+      font-weight: var(--font-semibold);
+      transition: var(--transition-smooth);
+      text-align: center;
+      font-size: var(--text-base);
+    }
+
+    .amount-btn:hover,
+    .amount-btn.selected {
+      background: var(--primary-color);
+      color: var(--text-on-primary);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-colored);
+    }
+
+    .custom-amount {
+      display: flex;
+      gap: var(--space-3);
+      margin-bottom: var(--space-6);
+      align-items: end;
+    }
+
+    .custom-amount-group {
+      flex: 1;
+    }
+
+    .custom-amount-label {
+      display: block;
+      margin-bottom: var(--space-2);
+      font-weight: var(--font-semibold);
+      color: var(--text-primary);
+      font-size: var(--text-sm);
+    }
+
+    .custom-amount input {
+      width: 100%;
+      padding: var(--space-3);
+      border: var(--border-width-thick) solid var(--border-color);
+      border-radius: var(--border-radius-lg);
+      font-size: var(--text-base);
+      transition: var(--transition-smooth);
+    }
+
+    .custom-amount input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .transactions-section {
+      margin-bottom: var(--space-8);
+    }
+
+    .transactions-header {
+      margin-bottom: var(--space-6);
+    }
+
+    .transactions-title {
+      font-size: var(--text-2xl);
+      font-weight: var(--font-bold);
+      color: var(--text-primary);
+      margin-bottom: var(--space-2);
+    }
+
+    .transactions-subtitle {
+      color: var(--text-secondary);
+      font-size: var(--text-base);
+    }
+
+    .transaction-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-4);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-lg);
+      margin-bottom: var(--space-3);
+      background: var(--background-primary);
+      transition: var(--transition-smooth);
+    }
+
+    .transaction-item:hover {
+      background: var(--background-secondary);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow);
+    }
+
+    .transaction-info {
+      flex: 1;
+    }
+
+    .transaction-type {
+      font-weight: var(--font-semibold);
+      color: var(--text-primary);
+      margin-bottom: var(--space-1);
+    }
+
+    .transaction-date {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+    }
+
+    .transaction-amount {
+      font-weight: var(--font-bold);
+      font-size: var(--text-lg);
+    }
+
+    .transaction-amount.positive {
+      color: var(--success-color);
+    }
+
+    .transaction-amount.negative {
+      color: var(--error-color);
+    }
+
+    .wallet-actions {
+      display: flex;
+      gap: var(--space-4);
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: var(--space-8);
+    }
+
+    /* Enhanced Mobile Responsiveness */
+    @media (max-width: 768px) {
+      body {
+        padding: var(--space-4) var(--space-2);
+      }
+
+      .wallet-container {
+        margin: 0;
+      }
+
+      .amount-buttons {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .custom-amount {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .wallet-actions {
+        flex-direction: column;
+        gap: var(--space-3);
+      }
+
+      .btn {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .amount-buttons {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wallet-container">
+    <!-- Back Navigation -->
+    <a href="{% url 'profile' %}" class="back-link">
+      ← Back to Profile
+    </a>
+
+    <!-- Wallet Header -->
+    <div class="wallet-header">
+      <h1>💰 My Wallet</h1>
+      <p class="subtitle">Manage your game balance and transactions</p>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="messages-container" style="margin-bottom: var(--space-6);">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Current Balance Card -->
+    <div class="balance-card">
+      <div class="balance-amount" id="current-balance">₹{{ player.balance }}</div>
+      <div class="balance-label">Current Balance</div>
+    </div>
+
+    <!-- Add Money Card -->
+    <div class="add-money-card">
+      <div class="card-header">
+        <h3 class="card-title">💳 Add Money to Wallet</h3>
+        <p class="card-subtitle">Choose an amount to add to your wallet</p>
+      </div>
+
+      <!-- Quick Amount Buttons -->
+      <div class="amount-buttons">
+        <button class="amount-btn" data-amount="100">₹100</button>
+        <button class="amount-btn" data-amount="250">₹250</button>
+        <button class="amount-btn" data-amount="500">₹500</button>
+        <button class="amount-btn" data-amount="1000">₹1000</button>
+        <button class="amount-btn" data-amount="2500">₹2500</button>
+        <button class="amount-btn" data-amount="5000">₹5000</button>
+      </div>
+
+      <!-- Custom Amount -->
+      <div class="custom-amount">
+        <div class="custom-amount-group">
+          <label class="custom-amount-label">Custom Amount (₹)</label>
+          <input type="number" id="custom-amount" placeholder="Enter custom amount" min="1" max="10000">
+        </div>
+        <button type="button" onclick="selectCustomAmount()" class="btn btn-secondary">Set Custom</button>
+      </div>
+
+      <!-- Add Money Button -->
+      <button id="add-money-btn" class="btn btn-primary btn-lg btn-full" onclick="addMoney()" disabled>
+        💰 Add Money to Wallet
+      </button>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="transactions-section">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">📋 Recent Transactions</h3>
+          <p class="card-subtitle">Your latest wallet activity</p>
+        </div>
+        <div class="card-body">
+          {% if recent_transactions %}
+            {% for transaction in recent_transactions %}
+            <div class="transaction-item">
+              <div class="transaction-info">
+                <div class="transaction-type">{{ transaction.get_transaction_type_display }}</div>
+                <div class="transaction-date">{{ transaction.created_at|date:"M d, Y H:i" }}</div>
+              </div>
+              <div class="transaction-amount {% if transaction.amount > 0 %}positive{% else %}negative{% endif %}">
+                {% if transaction.amount > 0 %}+{% endif %} ${{ transaction.amount }}
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="transaction-item">
+              <div class="transaction-info">
+                <div class="transaction-type">No transactions yet</div>
+                <div class="transaction-date">Start playing to see your transaction history</div>
+              </div>
+              <div class="transaction-amount">$0.00</div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Wallet Actions -->
+    <div class="wallet-actions">
+      <a href="{% url 'transaction_history' %}" class="btn btn-info">📋 View All Transactions</a>
+      <a href="{% url 'user_history' %}" class="btn btn-success">📊 My History</a>
+      <a href="{% url 'index' %}" class="btn btn-primary">🎮 Play Game</a>
+    </div>
+  </div>
+
+  <script>
+    let selectedAmount = 0;
+
+    // Handle amount button selection
+    document.querySelectorAll('.amount-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        // Remove selected class from all buttons
+        document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('selected'));
+        
+        // Add selected class to clicked button
+        this.classList.add('selected');
+        
+        // Set selected amount
+        selectedAmount = parseInt(this.dataset.amount);
+        
+        // Clear custom amount input
+        document.getElementById('custom-amount').value = '';
+        
+        // Enable add money button
+        document.getElementById('add-money-btn').disabled = false;
+      });
+    });
+
+    // Handle custom amount
+    function selectCustomAmount() {
+      const customInput = document.getElementById('custom-amount');
+      const amount = parseInt(customInput.value);
+      
+      if (amount && amount > 0 && amount <= 10000) {
+        // Remove selected class from all buttons
+        document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('selected'));
+        
+        selectedAmount = amount;
+        document.getElementById('add-money-btn').disabled = false;
+      } else {
+        showNotification('Please enter a valid amount between ₹1 and ₹10,000', 'error');
+      }
+    }
+
+    // Add money function
+    async function addMoney() {
+      if (selectedAmount <= 0) {
+        showNotification('Please select an amount to add', 'error');
+        return;
+      }
+
+      const addBtn = document.getElementById('add-money-btn');
+      addBtn.disabled = true;
+      addBtn.textContent = 'Processing...';
+
+      try {
+        const response = await fetch('{% url "add_money" %}', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+          },
+          body: JSON.stringify({
+            amount: selectedAmount
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Update balance display
+          document.getElementById('current-balance').textContent = '$' + data.new_balance;
+          
+          // Show success message
+          showNotification(data.message, 'success');
+          
+          // Reset form
+          selectedAmount = 0;
+          document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('selected'));
+          document.getElementById('custom-amount').value = '';
+          
+          // Reload page after 2 seconds to show updated transactions
+          setTimeout(() => {
+            location.reload();
+          }, 2000);
+        } else {
+          showNotification(data.message, 'error');
+        }
+      } catch (error) {
+        showNotification('An error occurred. Please try again.', 'error');
+      }
+
+      addBtn.disabled = false;
+      addBtn.textContent = 'Add Money to Wallet';
+    }
+
+    // Show notification
+    function showNotification(message, type) {
+      const notification = document.getElementById('notification');
+      notification.textContent = message;
+      notification.className = `notification ${type}`;
+      notification.classList.remove('hidden');
+
+      // Hide after 5 seconds
+      setTimeout(() => {
+        notification.classList.add('hidden');
+      }, 5000);
+    }
+
+    // Handle custom amount input
+    document.getElementById('custom-amount').addEventListener('input', function() {
+      const amount = parseInt(this.value);
+      if (amount && amount > 0 && amount <= 10000) {
+        document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('selected'));
+        selectedAmount = amount;
+        document.getElementById('add-money-btn').disabled = false;
+      } else {
+        selectedAmount = 0;
+        document.getElementById('add-money-btn').disabled = true;
+      }
+    });
+  </script>
+</body>
+</html>

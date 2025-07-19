@@ -1,0 +1,679 @@
+{% extends 'admin/modern_base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .live-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: var(--success);
+        color: white;
+        border-radius: var(--radius);
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .live-dot {
+        width: 8px;
+        height: 8px;
+        background: white;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    
+    .betting-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .color-bet-card {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .color-bet-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+    }
+    
+    .color-bet-card.red::before { background: #ef4444; }
+    .color-bet-card.green::before { background: #10b981; }
+    .color-bet-card.violet::before { background: #8b5cf6; }
+    
+    .color-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin: 0 auto 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.25rem;
+    }
+    
+    .color-icon.red { background: #ef4444; }
+    .color-icon.green { background: #10b981; }
+    .color-icon.violet { background: #8b5cf6; }
+    
+    .bet-amount {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .bet-count {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-bottom: 1rem;
+    }
+    
+    .bet-percentage {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: var(--radius);
+        background: var(--bg-main);
+        color: var(--text-secondary);
+    }
+    
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .action-card {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+        text-align: center;
+        transition: transform 0.2s ease;
+    }
+    
+    .action-card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .action-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        margin: 0 auto 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+    }
+    
+    .recent-activity {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .activity-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-light);
+    }
+    
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+    
+    .activity-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        color: white;
+        flex-shrink: 0;
+    }
+    
+    .activity-content {
+        flex: 1;
+    }
+    
+    .activity-title {
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+    
+    .activity-time {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+    }
+    
+    .game-status {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border);
+        margin-bottom: 2rem;
+    }
+    
+    .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+    
+    .status-indicator.active { background: var(--success); }
+    .status-indicator.inactive { background: var(--danger); }
+    
+    .countdown-timer {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--primary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Game Status -->
+<div class="game-status">
+    <div class="status-indicator active"></div>
+    <div>
+        <strong>Game Status: <span id="game-status-text">Active</span></strong>
+        <div class="text-muted" id="game-status-desc">Current round in progress</div>
+    </div>
+    <div class="ms-auto">
+        <div class="countdown-timer" id="countdown">Loading...</div>
+    </div>
+    <div class="live-indicator">
+        <div class="live-dot"></div>
+        LIVE
+    </div>
+</div>
+
+<!-- Active Rounds Summary -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-gamepad"></i> Active Game Rounds
+        </h3>
+    </div>
+    <div class="card-body">
+        <div id="active-rounds-summary">
+            <div class="text-center text-muted">
+                <i class="fas fa-spinner fa-spin"></i> Loading active rounds...
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Live Betting Statistics -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-between align-center">
+        <h3 class="card-title">
+            <i class="fas fa-chart-pie"></i> Live Betting Statistics
+        </h3>
+        <button class="btn btn-primary" onclick="refreshBettingStats()">
+            <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="betting-stats" id="betting-stats">
+            <div class="color-bet-card red">
+                <div class="color-icon red">
+                    <i class="fas fa-circle"></i>
+                </div>
+                <div class="bet-amount" id="red-amount">₹0</div>
+                <div class="bet-count" id="red-count">0 bets</div>
+                <div class="bet-percentage" id="red-percentage">0%</div>
+            </div>
+            
+            <div class="color-bet-card green">
+                <div class="color-icon green">
+                    <i class="fas fa-circle"></i>
+                </div>
+                <div class="bet-amount" id="green-amount">₹0</div>
+                <div class="bet-count" id="green-count">0 bets</div>
+                <div class="bet-percentage" id="green-percentage">0%</div>
+            </div>
+            
+            <div class="color-bet-card violet">
+                <div class="color-icon violet">
+                    <i class="fas fa-circle"></i>
+                </div>
+                <div class="bet-amount" id="violet-amount">₹0</div>
+                <div class="bet-count" id="violet-count">0 bets</div>
+                <div class="bet-percentage" id="violet-percentage">0%</div>
+            </div>
+
+            <div class="color-bet-card blue">
+                <div class="color-icon blue">
+                    <i class="fas fa-circle"></i>
+                </div>
+                <div class="bet-amount" id="blue-amount">₹0</div>
+                <div class="bet-count" id="blue-count">0 bets</div>
+                <div class="bet-percentage" id="blue-percentage">0%</div>
+            </div>
+        </div>
+        <div class="text-center mt-2">
+            <small class="text-muted" id="last-refresh">Last updated: --</small>
+        </div>
+    </div>
+</div>
+
+<!-- Key Metrics -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value text-success">₹{{ total_revenue|default:"0" }}</div>
+        <div class="stat-label">Total Revenue</div>
+        <div class="stat-change text-success">
+            <i class="fas fa-arrow-up"></i> +12.5% from last week
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-value text-info">{{ active_players|default:"0" }}</div>
+        <div class="stat-label">Active Players</div>
+        <div class="stat-change text-info">
+            <i class="fas fa-users"></i> Currently online
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-value text-warning">{{ total_bets_today|default:"0" }}</div>
+        <div class="stat-label">Bets Today</div>
+        <div class="stat-change text-warning">
+            <i class="fas fa-chart-line"></i> +8.3% from yesterday
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-value text-danger">₹{{ master_wallet_balance|default:"0" }}</div>
+        <div class="stat-label">Master Wallet</div>
+        <div class="stat-change text-success">
+            <i class="fas fa-wallet"></i> House balance
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="quick-actions">
+    <a href="{% url 'admin_game_control' %}" class="action-card">
+        <div class="action-icon" style="background: var(--primary);">
+            <i class="fas fa-gamepad"></i>
+        </div>
+        <h4>Game Control</h4>
+        <p class="text-muted">Manage game rounds and results</p>
+    </a>
+    
+    <a href="{% url 'admin_master_wallet' %}" class="action-card">
+        <div class="action-icon" style="background: var(--success);">
+            <i class="fas fa-wallet"></i>
+        </div>
+        <h4>Master Wallet</h4>
+        <p class="text-muted">View financial overview</p>
+    </a>
+    
+    <a href="{% url 'admin_user_management' %}" class="action-card">
+        <div class="action-icon" style="background: var(--info);">
+            <i class="fas fa-users"></i>
+        </div>
+        <h4>User Management</h4>
+        <p class="text-muted">Manage player accounts</p>
+    </a>
+    
+    <a href="{% url 'admin_reports' %}" class="action-card">
+        <div class="action-icon" style="background: var(--warning);">
+            <i class="fas fa-chart-bar"></i>
+        </div>
+        <h4>Reports</h4>
+        <p class="text-muted">View detailed analytics</p>
+    </a>
+</div>
+
+<!-- Recent Activity -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-clock"></i> Recent Activity
+        </h3>
+    </div>
+    <div class="card-body">
+        <div class="recent-activity" id="recent-activity">
+            <!-- Activity items will be loaded here -->
+            <div class="activity-item">
+                <div class="activity-icon" style="background: var(--success);">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <div class="activity-content">
+                    <div class="activity-title">New user registered</div>
+                    <div class="activity-time">2 minutes ago</div>
+                </div>
+            </div>
+            
+            <div class="activity-item">
+                <div class="activity-icon" style="background: var(--info);">
+                    <i class="fas fa-coins"></i>
+                </div>
+                <div class="activity-content">
+                    <div class="activity-title">Large bet placed: ₹5000 on Red</div>
+                    <div class="activity-time">5 minutes ago</div>
+                </div>
+            </div>
+            
+            <div class="activity-item">
+                <div class="activity-icon" style="background: var(--warning);">
+                    <i class="fas fa-trophy"></i>
+                </div>
+                <div class="activity-content">
+                    <div class="activity-title">Round completed - Green won</div>
+                    <div class="activity-time">8 minutes ago</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Refresh betting statistics
+    function refreshBettingStats() {
+        fetch('/control-panel/api/live-betting-stats/', {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Betting stats data:', data);
+                updateBettingStats(data);
+            })
+            .catch(error => {
+                console.error('Error fetching betting stats:', error);
+                // Show error in UI
+                document.getElementById('betting-stats').innerHTML =
+                    '<div class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> Error loading betting stats</div>';
+            });
+    }
+    
+    function updateBettingStats(data) {
+        const colors = ['red', 'green', 'violet', 'blue'];
+        let totalAmount = 0;
+
+        // Calculate total amount
+        colors.forEach(color => {
+            totalAmount += data[color]?.amount || 0;
+        });
+
+        // Update each color (only update if element exists)
+        colors.forEach(color => {
+            const amount = data[color]?.amount || 0;
+            const count = data[color]?.count || 0;
+            const users = data[color]?.users || 0;
+            const percentage = totalAmount > 0 ? ((amount / totalAmount) * 100).toFixed(1) : 0;
+
+            const amountEl = document.getElementById(`${color}-amount`);
+            const countEl = document.getElementById(`${color}-count`);
+            const percentageEl = document.getElementById(`${color}-percentage`);
+
+            if (amountEl) amountEl.textContent = `₹${amount}`;
+            if (countEl) countEl.textContent = `${count} bets (${users} users)`;
+            if (percentageEl) percentageEl.textContent = `${percentage}%`;
+        });
+
+        // Update last refresh time
+        const now = new Date().toLocaleTimeString();
+        const refreshEl = document.getElementById('last-refresh');
+        if (refreshEl) refreshEl.textContent = `Last updated: ${now}`;
+    }
+    
+    // Fetch active rounds information
+    function refreshActiveRounds() {
+        fetch('/control-panel/api/live-game-control-stats/')
+            .then(response => response.json())
+            .then(data => {
+                updateActiveRounds(data);
+                updateGameStatus(data);
+            })
+            .catch(error => {
+                console.error('Error fetching active rounds:', error);
+                document.getElementById('active-rounds-summary').innerHTML =
+                    '<div class="text-center text-danger"><i class="fas fa-exclamation-triangle"></i> Error loading rounds</div>';
+            });
+    }
+
+    function updateActiveRounds(data) {
+        const container = document.getElementById('active-rounds-summary');
+
+        if (!data.rounds || data.rounds.length === 0) {
+            container.innerHTML = '<div class="text-center text-muted"><i class="fas fa-pause-circle"></i> No active rounds</div>';
+            return;
+        }
+
+        let html = '<div class="row">';
+        data.rounds.forEach(round => {
+            const timeClass = round.time_remaining <= 10 ? 'text-danger' :
+                             round.time_remaining <= 20 ? 'text-warning' : 'text-success';
+
+            html += `
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card border-left-primary">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="card-title mb-0">${round.room.charAt(0).toUpperCase() + round.room.slice(1)}</h6>
+                                <span class="badge badge-primary">Round ${round.period_id}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted">Time Left:</span>
+                                <span class="${timeClass} font-weight-bold">${round.time_remaining}s</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted">Total Bets:</span>
+                                <span class="font-weight-bold">${round.total_bets}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted">Amount:</span>
+                                <span class="font-weight-bold text-success">₹${round.total_amount}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+
+        container.innerHTML = html;
+    }
+
+    function updateGameStatus(data) {
+        const statusText = document.getElementById('game-status-text');
+        const statusDesc = document.getElementById('game-status-desc');
+
+        if (data.rounds && data.rounds.length > 0) {
+            statusText.textContent = 'Active';
+            statusDesc.textContent = `${data.rounds.length} rounds in progress`;
+        } else {
+            statusText.textContent = 'Inactive';
+            statusDesc.textContent = 'No active rounds';
+        }
+    }
+
+    // WebSocket connection for real-time dashboard updates
+    let dashboardSocket = null;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+
+    function initDashboardWebSocket() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/control-panel/dashboard/`;
+
+        dashboardSocket = new WebSocket(wsUrl);
+
+        dashboardSocket.onopen = function(event) {
+            console.log('Dashboard WebSocket connected');
+            reconnectAttempts = 0;
+            updateConnectionStatus(true);
+        };
+
+        dashboardSocket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            handleDashboardUpdate(data);
+        };
+
+        dashboardSocket.onclose = function(event) {
+            console.log('Dashboard WebSocket disconnected');
+            updateConnectionStatus(false);
+
+            // Attempt to reconnect
+            if (reconnectAttempts < maxReconnectAttempts) {
+                setTimeout(() => {
+                    reconnectAttempts++;
+                    initDashboardWebSocket();
+                }, 3000);
+            }
+        };
+
+        dashboardSocket.onerror = function(error) {
+            console.error('Dashboard WebSocket error:', error);
+        };
+    }
+
+    function handleDashboardUpdate(data) {
+        switch(data.type) {
+            case 'betting_stats_update':
+                updateBettingStatsFromWebSocket(data.stats);
+                break;
+            case 'timer_update':
+                updateTimersFromWebSocket(data.timer_info);
+                break;
+            case 'game_status_update':
+                updateGameStatusFromWebSocket(data.game_status);
+                break;
+            default:
+                console.log('Unknown dashboard update type:', data.type);
+        }
+    }
+
+    function updateConnectionStatus(connected) {
+        const refreshBtn = document.querySelector('button[onclick="refreshBettingStats()"]');
+        if (refreshBtn) {
+            if (connected) {
+                refreshBtn.innerHTML = '<i class="fas fa-wifi"></i> Connected';
+                refreshBtn.className = 'btn btn-success';
+            } else {
+                refreshBtn.innerHTML = '<i class="fas fa-wifi"></i> Reconnecting...';
+                refreshBtn.className = 'btn btn-warning';
+            }
+        }
+    }
+
+    // Initialize WebSocket and load initial data
+    document.addEventListener('DOMContentLoaded', function() {
+        initDashboardWebSocket();
+
+        // Initial load with slight delay
+        setTimeout(() => {
+            refreshBettingStats();
+            refreshActiveRounds();
+        }, 1000);
+    });
+
+    // Reduced frequency API fallback (WebSocket handles real-time updates)
+    setInterval(() => {
+        if (!dashboardSocket || dashboardSocket.readyState !== WebSocket.OPEN) {
+            refreshBettingStats();
+            refreshActiveRounds();
+        }
+    }, 10000);
+    
+    // Timer management with better sync
+    function updateTimers() {
+        fetch('/control-panel/api/timer-info/')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success && data.timers.length > 0) {
+                    // Store server time for sync calculations
+                    const serverTime = new Date(data.server_time);
+                    const clientTime = new Date();
+                    const timeDrift = Math.abs(serverTime.getTime() - clientTime.getTime());
+
+                    // Get the timer with the least time remaining
+                    const activeTimer = data.timers.reduce((min, timer) =>
+                        timer.time_remaining < min.time_remaining ? timer : min
+                    );
+
+                    const minutes = Math.floor(activeTimer.time_remaining / 60);
+                    const seconds = activeTimer.time_remaining % 60;
+                    const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+                    document.getElementById('countdown').textContent = timeString;
+
+                    // Update game status
+                    if (activeTimer.time_remaining <= 10) {
+                        document.getElementById('game-status-text').textContent = 'Selection Window';
+                        document.getElementById('game-status-desc').textContent = 'Admin can select winning color';
+                    } else if (activeTimer.time_remaining <= 40) {
+                        document.getElementById('game-status-text').textContent = 'Betting Closed';
+                        document.getElementById('game-status-desc').textContent = 'Waiting for result';
+                    } else {
+                        document.getElementById('game-status-text').textContent = 'Active';
+                        document.getElementById('game-status-desc').textContent = 'Betting in progress';
+                    }
+                } else {
+                    document.getElementById('countdown').textContent = 'No active rounds';
+                    document.getElementById('game-status-text').textContent = 'Inactive';
+                    document.getElementById('game-status-desc').textContent = 'No active rounds';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching timer info:', error);
+                document.getElementById('countdown').textContent = 'Error';
+            });
+    }
+
+    // Update timers every 1 second - no rate limiting for admin users
+    setInterval(updateTimers, 1000);
+    updateTimers();
+</script>
+{% endblock %}

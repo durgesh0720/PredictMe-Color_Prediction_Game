@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Edit Profile - Color Prediction Game</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+    }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      margin: 0;
+      padding: 20px 0;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden; /* Prevent horizontal scroll */
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 15px;
+      padding: 40px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 2.2rem;
+      color: #1f2937;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 1rem;
+      color: #6b7280;
+      margin-bottom: 30px;
+    }
+    .avatar-section {
+      text-align: center;
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 10px;
+    }
+    .current-avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #667eea;
+      margin-bottom: 15px;
+    }
+    .default-avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      color: white;
+      margin: 0 auto 15px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-row {
+      display: flex;
+      gap: 15px;
+    }
+    .form-row .form-group {
+      flex: 1;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #374151;
+    }
+    input[type="text"], input[type="email"], input[type="tel"], input[type="date"], input[type="file"], textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.3s ease;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      transition: transform 0.3s ease;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+    .btn-primary {
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      color: white;
+    }
+    .btn-secondary {
+      background: #6b7280;
+      color: white;
+    }
+    .btn-outline {
+      background: transparent;
+      border: 2px solid #667eea;
+      color: #667eea;
+    }
+    .error-list {
+      background: #fee2e2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    .error-list ul {
+      margin: 0;
+      padding-left: 20px;
+      color: #dc2626;
+    }
+    .help-text {
+      font-size: 0.9rem;
+      color: #6b7280;
+      margin-top: 5px;
+    }
+    .actions {
+      text-align: center;
+      margin-top: 30px;
+    }
+    .messages {
+      margin-bottom: 20px;
+    }
+    .messages .alert {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    .alert-success {
+      background: #d1fae5;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+    }
+    .alert-error {
+      background: #fee2e2;
+      border: 1px solid #fecaca;
+      color: #dc2626;
+    }
+    /* Enhanced Mobile Responsiveness */
+    @media (max-width: 768px) {
+      body {
+        padding: 10px 0;
+      }
+      .container {
+        margin: 0 10px;
+        padding: 20px;
+        border-radius: 10px;
+      }
+      h1 {
+        font-size: 2rem;
+      }
+      .subtitle {
+        font-size: 1rem;
+      }
+      .form-row {
+        flex-direction: column;
+        gap: 0;
+      }
+      .current-avatar, .default-avatar {
+        width: 120px;
+        height: 120px;
+        font-size: 2.5rem;
+      }
+      .actions {
+        text-align: center;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .btn {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 10px;
+        padding: 12px 20px;
+        font-size: 0.9rem;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      .mobile-nav {
+        display: block !important;
+      }
+      .form-group label {
+        font-size: 0.9rem;
+      }
+      .form-group input,
+      .form-group textarea,
+      .form-group select {
+        font-size: 16px; /* Prevents zoom on iOS */
+        padding: 12px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        margin: 0 5px;
+        padding: 15px;
+      }
+      h1 {
+        font-size: 1.8rem;
+      }
+      .current-avatar, .default-avatar {
+        width: 100px;
+        height: 100px;
+        font-size: 2rem;
+      }
+      .form-group input,
+      .form-group textarea,
+      .form-group select {
+        padding: 10px;
+      }
+      .help-text {
+        font-size: 0.8rem;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .container {
+        margin: 0;
+        border-radius: 0;
+        padding: 10px;
+      }
+      h1 {
+        font-size: 1.6rem;
+      }
+      .subtitle {
+        font-size: 0.9rem;
+      }
+      .current-avatar, .default-avatar {
+        width: 80px;
+        height: 80px;
+        font-size: 1.8rem;
+      }
+      .btn {
+        padding: 10px 15px;
+        font-size: 0.85rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="mobile-nav" style="display: none;">
+      <a href="{% url 'user_profile' %}" class="back-btn" style="display: inline-flex; align-items: center; gap: 8px; color: #667eea; text-decoration: none; margin-bottom: 15px; font-weight: 600;">
+        ← Back to Profile
+      </a>
+    </div>
+    <h1>✏️ Edit Profile</h1>
+    <p class="subtitle">Update your personal information</p>
+
+    {% if messages %}
+    <div class="messages">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if errors %}
+    <div class="error-list">
+      <ul>
+        {% for error in errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <div class="avatar-section">
+      <h3 style="margin-bottom: 15px; color: #374151;">Profile Picture</h3>
+      {% if player.avatar %}
+        <img src="{{ player.avatar.url }}" alt="Current Avatar" class="current-avatar"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="default-avatar" style="display: none;">
+          {{ player.username|first|upper }}
+        </div>
+      {% else %}
+        <div class="default-avatar">
+          {{ player.username|first|upper }}
+        </div>
+      {% endif %}
+      
+      <form method="post" enctype="multipart/form-data" action="{% url 'upload_avatar' %}" style="margin-top: 15px;">
+        {% csrf_token %}
+        <input type="file" name="avatar" accept="image/*" style="margin-bottom: 10px;">
+        <button type="submit" class="btn btn-outline">📷 Update Avatar</button>
+        <div class="help-text">Max file size: 5MB. Supported formats: JPEG, PNG, GIF</div>
+      </form>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="first_name">First Name</label>
+          <input type="text" id="first_name" name="first_name" 
+                 value="{{ first_name|default:player.first_name }}" 
+                 placeholder="Your first name">
+        </div>
+        <div class="form-group">
+          <label for="last_name">Last Name</label>
+          <input type="text" id="last_name" name="last_name" 
+                 value="{{ last_name|default:player.last_name }}" 
+                 placeholder="Your last name">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="phone_number">Phone Number</label>
+        <input type="tel" id="phone_number" name="phone_number" 
+               value="{{ phone_number|default:player.phone_number }}" 
+               placeholder="+1234567890">
+        <div class="help-text">Format: +1234567890</div>
+      </div>
+
+      <div class="form-group">
+        <label for="date_of_birth">Date of Birth</label>
+        <input type="date" id="date_of_birth" name="date_of_birth" 
+               value="{{ date_of_birth|default:player.date_of_birth|date:'Y-m-d' }}">
+      </div>
+
+      <div class="form-group">
+        <label for="bio">Bio</label>
+        <textarea id="bio" name="bio" placeholder="Tell us about yourself...">{{ bio|default:player.bio }}</textarea>
+        <div class="help-text">Maximum 500 characters</div>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn btn-primary">💾 Save Changes</button>
+        <a href="{% url 'user_profile' %}" class="btn btn-secondary">❌ Cancel</a>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    // Character counter for bio
+    const bioTextarea = document.getElementById('bio');
+    const helpText = bioTextarea.nextElementSibling;
+
+    function updateCharCount() {
+      const remaining = 500 - bioTextarea.value.length;
+      helpText.textContent = `${remaining} characters remaining`;
+
+      if (remaining < 0) {
+        helpText.style.color = '#dc2626';
+      } else if (remaining < 50) {
+        helpText.style.color = '#f59e0b';
+      } else {
+        helpText.style.color = '#6b7280';
+      }
+    }
+
+    bioTextarea.addEventListener('input', updateCharCount);
+    updateCharCount(); // Initial count
+
+    // Phone number validation
+    document.getElementById('phone_number').addEventListener('input', function() {
+      const phone = this.value;
+      const regex = /^\+?1?\d{9,15}$/;
+
+      if (phone.length > 0 && !regex.test(phone)) {
+        this.setCustomValidity('Please enter a valid phone number');
+      } else {
+        this.setCustomValidity('');
+      }
+    });
+
+    // Mobile-friendly enhancements
+    document.addEventListener('DOMContentLoaded', function() {
+      // Add touch feedback for buttons
+      const buttons = document.querySelectorAll('.btn');
+      buttons.forEach(button => {
+        button.addEventListener('touchstart', function() {
+          this.style.transform = 'scale(0.98)';
+        });
+        button.addEventListener('touchend', function() {
+          this.style.transform = '';
+        });
+      });
+
+      // Improve file input experience on mobile
+      const fileInput = document.querySelector('input[type="file"]');
+      if (fileInput) {
+        fileInput.addEventListener('change', function() {
+          const fileName = this.files[0]?.name;
+          if (fileName) {
+            // Show selected file name
+            const label = this.nextElementSibling;
+            if (label && label.tagName === 'BUTTON') {
+              label.innerHTML = `📷 ${fileName}`;
+              label.style.color = '#059669';
+            }
+          }
+        });
+      }
+
+      // Auto-focus first input on larger screens, avoid on mobile to prevent keyboard popup
+      if (window.innerWidth > 768) {
+        const firstInput = document.querySelector('input[type="text"]');
+        if (firstInput) {
+          firstInput.focus();
+        }
+      }
+
+      // Smooth scroll for mobile navigation
+      const backBtn = document.querySelector('.back-btn');
+      if (backBtn) {
+        backBtn.addEventListener('click', function(e) {
+          this.style.opacity = '0.7';
+          setTimeout(() => {
+            this.style.opacity = '1';
+          }, 150);
+        });
+      }
+    });
+  </script>
+</body>
+</html>
