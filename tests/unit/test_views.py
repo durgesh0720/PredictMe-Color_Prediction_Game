@@ -7,8 +7,8 @@ from django.http import HttpRequest
 from unittest.mock import patch, Mock
 import json
 
-from .models import Player, GameRound, Bet, Admin
-from .security import InputValidator
+from polling.models import Player, GameRound, Bet, Admin
+from polling.security import InputValidator
 
 
 class ViewsTestCase(TestCase):
@@ -272,7 +272,7 @@ class ValidationTestCase(TestCase):
         invalid_usernames = [
             '',           # Empty
             'ab',         # Too short
-            'a' * 21,     # Too long
+            'a' * 31,     # Too long (31 chars > 30 limit)
             'user@name',  # Invalid character
             'user name',  # Space
             'user!',      # Special character

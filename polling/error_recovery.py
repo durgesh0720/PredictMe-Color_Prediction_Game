@@ -29,28 +29,44 @@ class ErrorRecoveryManager:
     """
     Manages error recovery for game state corruption and failures
     """
-    
+
     def __init__(self):
         self.pending_recoveries: Dict[str, RecoveryAction] = {}
         self.recovery_task: Optional[asyncio.Task] = None
         self.monitoring_task: Optional[asyncio.Task] = None
-        
+
         # Configuration
         self.check_interval = 30  # seconds
         self.stuck_round_threshold = 300  # 5 minutes
         self.failed_bet_threshold = 60   # 1 minute
-        
-        # Start monitoring
-        self.start_monitoring()
+
+        # Don't start monitoring during import - start it when needed
+        self._monitoring_started = False
     
     def start_monitoring(self):
-        """Start background monitoring tasks"""
-        if not self.recovery_task or self.recovery_task.done():
-            self.recovery_task = asyncio.create_task(self._recovery_loop())
-        
-        if not self.monitoring_task or self.monitoring_task.done():
-            self.monitoring_task = asyncio.create_task(self._monitoring_loop())
-    
+        """Start background monitoring tasks - only when event loop is available"""
+        if self._monitoring_started:
+            return
+
+        try:
+            # Check if we have a running event loop
+            loop = asyncio.get_running_loop()
+            if not self.recovery_task or self.recovery_task.done():
+                self.recovery_task = asyncio.create_task(self._recovery_loop())
+
+            if not self.monitoring_task or self.monitoring_task.done():
+                self.monitoring_task = asyncio.create_task(self._monitoring_loop())
+            self._monitoring_started = True
+            logger.info("Error recovery monitoring started")
+        except RuntimeError:
+            # No event loop running - monitoring will start when needed
+            logger.debug("No event loop available - error recovery monitoring will start when needed")
+
+    def ensure_monitoring_started(self):
+        """Ensure monitoring is started if event loop is available"""
+        if not self._monitoring_started:
+            self.start_monitoring()
+
     async def _monitoring_loop(self):
         """Background monitoring for system issues"""
         while True:

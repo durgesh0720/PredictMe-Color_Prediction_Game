@@ -130,20 +130,20 @@
          * @returns {boolean} - True if message was sent successfully
          */
         sendSecureMessage(message) {
-            if (!wsManager || !wsManager.isConnected) {
+            if (!window.wsManager || !window.wsManager.isConnected) {
                 console.warn('WebSocket not connected. Message not sent:', message);
                 return false;
             }
 
-            return wsManager.sendMessage(message);
+            return window.wsManager.sendMessage(message);
         },
 
         /**
          * Initialize WebSocket connection
          */
         initWebSocket() {
-            if (wsManager) {
-                wsManager.connect();
+            if (window.wsManager) {
+                window.wsManager.connect();
             } else {
                 initializeWebSocket();
             }
@@ -262,24 +262,87 @@
             UIUtils
         });
 
-        // Register message handlers
-        wsManager.onMessage('comprehensive_game_status', handleGameStatusMessage);
-        wsManager.onMessage('live_betting_stats', handleLiveBettingStats);
-        wsManager.onMessage('bet_placed_update', handleBetPlacedUpdate);
-        wsManager.onMessage('timer_info', handleTimerInfo);
-        wsManager.onMessage('timer_sync', handleTimerSync);
-        wsManager.onMessage('timer_update', handleTimerUpdate);
-        wsManager.onMessage('color_selected', handleColorSelected);
-        wsManager.onMessage('color_selection_confirmed', handleColorSelectionConfirmed);
-        wsManager.onMessage('round_ended', handleRoundEnded);
-        wsManager.onMessage('new_round_started', handleNewRoundStarted);
-        wsManager.onMessage('state_synced', handleStateSynced);
+        // Register message handlers with debug logging
+        const registerMessageHandler = (type, handler) => {
+            const wrappedHandler = (data) => {
+                if (window.DebugPanel) {
+                    window.DebugPanel.addMessage('RECV', `${type}: ${JSON.stringify(data).substring(0, 100)}...`);
+                }
+                return handler(data);
+            };
+            wsManager.onMessage(type, wrappedHandler);
+        };
+
+        registerMessageHandler('comprehensive_game_status', handleGameStatusMessage);
+        registerMessageHandler('live_betting_stats', handleLiveBettingStats);
+        registerMessageHandler('bet_placed_update', handleBetPlacedUpdate);
+        registerMessageHandler('timer_info', handleTimerInfo);
+        registerMessageHandler('timer_sync', handleTimerSync);
+        registerMessageHandler('timer_update', handleTimerUpdate);
+        registerMessageHandler('color_selected', handleColorSelected);
+        registerMessageHandler('color_selection_confirmed', handleColorSelectionConfirmed);
+        registerMessageHandler('round_ended', handleRoundEnded);
+        registerMessageHandler('new_round_started', handleNewRoundStarted);
+        registerMessageHandler('state_synced', handleStateSynced);
+
+        // Register connection event handlers
+        wsManager.onConnection((isConnected) => {
+            const connectionStatus = document.getElementById('connection-status');
+
+            if (isConnected) {
+                console.log('Admin WebSocket connected - requesting initial data');
+
+                // Update connection status indicator
+                if (connectionStatus) {
+                    connectionStatus.textContent = 'Connected';
+                    connectionStatus.style.background = '#28a745';
+                }
+
+                // Request initial game state and statistics
+                setTimeout(() => {
+                    WebSocketUtils.sendSecureMessage({ 'type': 'get_game_status' });
+                    WebSocketUtils.sendSecureMessage({ 'type': 'get_live_stats' });
+                    WebSocketUtils.sendSecureMessage({ 'type': 'sync_state' });
+
+                    UIUtils.showSuccessMessage('Connected to live game data');
+                }, 500); // Small delay to ensure connection is fully established
+            } else {
+                console.log('Admin WebSocket disconnected');
+
+                // Update connection status indicator
+                if (connectionStatus) {
+                    connectionStatus.textContent = 'Disconnected';
+                    connectionStatus.style.background = '#dc3545';
+                }
+
+                UIUtils.showErrorMessage('Lost connection to live game data');
+            }
+        });
 
         // Connect to WebSocket
         wsManager.connect();
 
         // Store globally for access from other functions
         window.wsManager = wsManager;
+
+        // Add debug message logging to WebSocket events
+        const originalSendMessage = wsManager.sendMessage;
+        if (originalSendMessage) {
+            wsManager.sendMessage = function(message) {
+                if (window.DebugPanel) {
+                    window.DebugPanel.addMessage('SEND', `${message.type || 'unknown'}: ${JSON.stringify(message).substring(0, 100)}...`);
+                }
+                return originalSendMessage.call(this, message);
+            };
+        }
+
+        // Set up periodic stats refresh to ensure data stays current
+        setInterval(() => {
+            if (window.wsManager && window.wsManager.isConnected) {
+                console.log('Periodic stats refresh');
+                WebSocketUtils.sendSecureMessage({ 'type': 'get_live_stats' });
+            }
+        }, 5000); // Refresh every 5 seconds
     }
 
     /**
@@ -298,11 +361,17 @@
             return;
         }
 
+        // Add debug logging
+        if (window.DebugPanel) {
+            window.DebugPanel.addMessage('STATS', `Updated betting stats for ${Object.keys(data.stats).length} colors`);
+        }
+
         // Update betting statistics display for each color
         const colors = ['red', 'green', 'violet', 'blue'];
 
         colors.forEach(color => {
             const colorStats = data.stats[color] || { amount: 0, count: 0, users: 0 };
+            console.log(`Updating ${color} stats:`, colorStats);
 
             // Update color statistics in round cards
             document.querySelectorAll(`[data-round-id]`).forEach(roundCard => {
@@ -311,20 +380,38 @@
                 const colorCountElement = roundCard.querySelector(`.color-count-${color}`);
                 const colorUsersElement = roundCard.querySelector(`.color-users-${color}`);
 
-                if (colorStatsElement) {
-                    colorStatsElement.textContent = `$${colorStats.amount} (${colorStats.count} bets)`;
-                }
-
                 if (colorAmountElement) {
-                    colorAmountElement.textContent = `$${colorStats.amount}`;
+                    const oldValue = colorAmountElement.textContent;
+                    colorAmountElement.textContent = `₹${colorStats.amount}`;
+                    console.log(`Updated ${color} amount: ${oldValue} -> ₹${colorStats.amount}`);
+
+                    // Add visual feedback for updates
+                    colorAmountElement.classList.add('stats-updated');
+                    setTimeout(() => colorAmountElement.classList.remove('stats-updated'), 500);
                 }
 
                 if (colorCountElement) {
-                    colorCountElement.textContent = colorStats.count;
+                    const oldValue = colorCountElement.textContent;
+                    colorCountElement.textContent = `${colorStats.count} bets`;
+                    console.log(`Updated ${color} count: ${oldValue} -> ${colorStats.count} bets`);
+
+                    // Add visual feedback for updates
+                    colorCountElement.classList.add('stats-updated');
+                    setTimeout(() => colorCountElement.classList.remove('stats-updated'), 500);
                 }
 
                 if (colorUsersElement) {
-                    colorUsersElement.textContent = colorStats.users;
+                    const oldValue = colorUsersElement.textContent;
+                    colorUsersElement.textContent = `${colorStats.users} players`;
+                    console.log(`Updated ${color} users: ${oldValue} -> ${colorStats.users} players`);
+
+                    // Add visual feedback for updates
+                    colorUsersElement.classList.add('stats-updated');
+                    setTimeout(() => colorUsersElement.classList.remove('stats-updated'), 500);
+                }
+
+                if (colorStatsElement) {
+                    colorStatsElement.textContent = `₹${colorStats.amount} (${colorStats.count} bets)`;
                 }
             });
 
@@ -335,7 +422,7 @@
             const globalColorPercentage = document.getElementById(`${color}-percentage`);
 
             if (globalColorAmount) {
-                globalColorAmount.textContent = `$${colorStats.amount}`;
+                globalColorAmount.textContent = `₹${colorStats.amount}`;
             }
 
             if (globalColorCount) {
@@ -359,25 +446,41 @@
         const totalCount = colors.reduce((sum, color) => sum + (data.stats[color]?.count || 0), 0);
         const totalUsers = colors.reduce((sum, color) => sum + (data.stats[color]?.users || 0), 0);
 
+        console.log(`Total stats - Amount: ₹${totalAmount}, Count: ${totalCount}, Users: ${totalUsers}`);
+
         const totalAmountElement = document.getElementById('total-betting-amount');
         const totalCountElement = document.getElementById('total-betting-count');
         const totalUsersElement = document.getElementById('total-betting-users');
         const activeRoundsElement = document.getElementById('active-rounds-count');
 
         if (totalAmountElement) {
-            totalAmountElement.textContent = `$${totalAmount}`;
+            const oldValue = totalAmountElement.textContent;
+            totalAmountElement.textContent = `₹${totalAmount}`;
+            console.log(`Updated total amount: ${oldValue} -> ₹${totalAmount}`);
+            totalAmountElement.classList.add('stats-updated');
+            setTimeout(() => totalAmountElement.classList.remove('stats-updated'), 500);
         }
 
         if (totalCountElement) {
+            const oldValue = totalCountElement.textContent;
             totalCountElement.textContent = totalCount;
+            console.log(`Updated total count: ${oldValue} -> ${totalCount}`);
+            totalCountElement.classList.add('stats-updated');
+            setTimeout(() => totalCountElement.classList.remove('stats-updated'), 500);
         }
 
         if (totalUsersElement) {
+            const oldValue = totalUsersElement.textContent;
             totalUsersElement.textContent = totalUsers;
+            console.log(`Updated total users: ${oldValue} -> ${totalUsers}`);
+            totalUsersElement.classList.add('stats-updated');
+            setTimeout(() => totalUsersElement.classList.remove('stats-updated'), 500);
         }
 
         if (activeRoundsElement) {
+            const oldValue = activeRoundsElement.textContent;
             activeRoundsElement.textContent = data.active_rounds_count || 0;
+            console.log(`Updated active rounds: ${oldValue} -> ${data.active_rounds_count || 0}`);
         }
 
         // Update timestamp
@@ -391,8 +494,13 @@
     function handleBetPlacedUpdate(data) {
         console.log('Bet placed update received:', data);
 
+        // Add debug logging
+        if (window.DebugPanel) {
+            window.DebugPanel.addMessage('BET', `${data.username} bet ₹${data.amount} on ${data.color || data.number}`);
+        }
+
         // Show real-time bet notification
-        const message = `${ValidationUtils.escapeHtml(data.username)} bet $${data.amount} on ${ValidationUtils.escapeHtml(data.color || data.number)}`;
+        const message = `${ValidationUtils.escapeHtml(data.username)} bet ₹${data.amount} on ${ValidationUtils.escapeHtml(data.color || data.number)}`;
         UIUtils.showSuccessMessage(message);
 
         // Update round-specific betting info if available
@@ -404,7 +512,29 @@
                 roundCard.classList.remove('new-bet-flash');
             }, 1000);
 
-            // Update bet count indicator if it exists
+            // Immediately update the color-specific betting display
+            if (data.color) {
+                const colorAmountElement = roundCard.querySelector(`.color-amount-${data.color}`);
+                const colorCountElement = roundCard.querySelector(`.color-count-${data.color}`);
+
+                if (colorAmountElement) {
+                    // Extract current amount and add new bet amount
+                    const currentAmountText = colorAmountElement.textContent.replace('₹', '');
+                    const currentAmount = parseInt(currentAmountText) || 0;
+                    const newAmount = currentAmount + data.amount;
+                    colorAmountElement.textContent = `₹${newAmount}`;
+                }
+
+                if (colorCountElement) {
+                    // Extract current count and increment
+                    const currentCountText = colorCountElement.textContent.replace(' bets', '');
+                    const currentCount = parseInt(currentCountText) || 0;
+                    const newCount = currentCount + 1;
+                    colorCountElement.textContent = `${newCount} bets`;
+                }
+            }
+
+            // Update total bet count indicator if it exists
             const betCountElement = roundCard.querySelector('.bet-count');
             if (betCountElement) {
                 const currentCount = parseInt(betCountElement.textContent) || 0;
@@ -412,8 +542,10 @@
             }
         }
 
-        // The live betting stats will be automatically updated by the server
-        // after this event is processed
+        // Request immediate stats refresh to ensure accuracy
+        if (window.wsManager && window.wsManager.isConnected) {
+            WebSocketUtils.sendSecureMessage({ 'type': 'get_live_stats' });
+        }
     }
 
     function handleTimerInfo(data) {
@@ -615,17 +747,142 @@
 
     function handleRoundEnded(data) {
         console.log('Round ended:', data);
-        // Handle round end events
+
+        // Update round status to show it's ended
+        const statusElements = document.querySelectorAll('.round-status');
+        statusElements.forEach(el => {
+            el.textContent = 'Round Ended';
+            el.className = 'round-status round-ended';
+        });
+
+        // Show result if available
+        if (data.result_color && data.result_number) {
+            UIUtils.showSuccessMessage(`Round ended: ${data.result_color.toUpperCase()} ${data.result_number}`);
+        } else {
+            UIUtils.showInfoMessage('Round ended - waiting for results');
+        }
+
+        // Request updated stats to show final betting results
+        if (window.wsManager && window.wsManager.isConnected) {
+            WebSocketUtils.sendSecureMessage({ 'type': 'get_game_status' });
+            WebSocketUtils.sendSecureMessage({ 'type': 'get_live_stats' });
+        }
     }
 
     function handleNewRoundStarted(data) {
         console.log('New round started:', data);
-        // Handle new round events
+
+        // Clear current betting statistics for the new round
+        clearBettingStats();
+
+        // Request fresh data from server
+        if (window.wsManager && window.wsManager.isConnected) {
+            // Request updated game status and live stats
+            WebSocketUtils.sendSecureMessage({ 'type': 'get_game_status' });
+            WebSocketUtils.sendSecureMessage({ 'type': 'get_live_stats' });
+            WebSocketUtils.sendSecureMessage({ 'type': 'sync_state' });
+        }
+
+        // Show notification to admin
+        UIUtils.showSuccessMessage(`New round started: ${data.period_id || data.round_id}`);
+
+        // Update UI to reflect new round state
+        updateRoundDisplay(data);
     }
 
     function handleStateSynced(data) {
         console.log('State synchronized:', data);
         UIUtils.showSuccessMessage('State synchronized with server');
+    }
+
+    /**
+     * Clear betting statistics display for new round
+     */
+    function clearBettingStats() {
+        console.log('Clearing betting statistics for new round');
+
+        // Reset color statistics to zero
+        const colors = ['red', 'green', 'violet', 'blue'];
+
+        colors.forEach(color => {
+            // Update all round cards
+            document.querySelectorAll(`[data-round-id]`).forEach(roundCard => {
+                const colorAmountElement = roundCard.querySelector(`.color-amount-${color}`);
+                const colorCountElement = roundCard.querySelector(`.color-count-${color}`);
+                const colorUsersElement = roundCard.querySelector(`.color-users-${color}`);
+                const colorStatsElement = roundCard.querySelector(`.color-stats-${color}`);
+
+                if (colorAmountElement) {
+                    colorAmountElement.textContent = '₹0';
+                }
+                if (colorCountElement) {
+                    colorCountElement.textContent = '0';
+                }
+                if (colorUsersElement) {
+                    colorUsersElement.textContent = '0';
+                }
+                if (colorStatsElement) {
+                    colorStatsElement.textContent = '₹0 (0 bets)';
+                }
+            });
+
+            // Update main betting stats display
+            const mainColorElement = document.querySelector(`.color-bet.${color}`);
+            if (mainColorElement) {
+                const amountEl = mainColorElement.querySelector('.bet-amount');
+                const countEl = mainColorElement.querySelector('.bet-count');
+                const usersEl = mainColorElement.querySelector('.bet-users');
+
+                if (amountEl) amountEl.textContent = '₹0';
+                if (countEl) countEl.textContent = '0 bets';
+                if (usersEl) usersEl.textContent = '0 players';
+            }
+        });
+
+        // Reset total statistics
+        const totalAmountEl = document.getElementById('total-amount');
+        const totalPlayersEl = document.getElementById('total-players');
+
+        if (totalAmountEl) totalAmountEl.textContent = '₹0';
+        if (totalPlayersEl) totalPlayersEl.textContent = '0';
+
+        // Reset round summary if it exists
+        const summaryElements = document.querySelectorAll('.summary-value');
+        summaryElements.forEach((el, index) => {
+            if (index === 0) el.textContent = '0'; // Total bets
+            else if (index === 1) el.textContent = '₹0'; // Total amount
+            else if (index === 2) el.textContent = '0'; // Players
+        });
+    }
+
+    /**
+     * Update round display information
+     */
+    function updateRoundDisplay(data) {
+        console.log('Updating round display:', data);
+
+        // Update round ID displays
+        if (data.round_id || data.period_id) {
+            const roundIdElements = document.querySelectorAll('.round-id, .period-id');
+            roundIdElements.forEach(el => {
+                el.textContent = data.period_id || data.round_id;
+            });
+        }
+
+        // Update round status indicators
+        const statusElements = document.querySelectorAll('.round-status');
+        statusElements.forEach(el => {
+            el.textContent = 'Betting Open';
+            el.className = 'round-status betting-open';
+        });
+
+        // Update timer displays if available
+        if (data.time_remaining) {
+            const timerElements = document.querySelectorAll('.timer-display, .time-remaining');
+            timerElements.forEach(el => {
+                el.textContent = `${data.time_remaining}s`;
+            });
+        }
     }
 
     /**
@@ -879,7 +1136,7 @@
          * Refresh data via WebSocket
          */
         refreshData() {
-            if (wsManager && wsManager.isConnected) {
+            if (window.wsManager && window.wsManager.isConnected) {
                 // Use WebSocket for faster refresh
                 const success = WebSocketUtils.sendSecureMessage({ 'type': 'force_refresh' }) &&
                                WebSocketUtils.sendSecureMessage({ 'type': 'sync_state' }) &&
@@ -903,8 +1160,117 @@
     // Initialize WebSocket when DOM is ready
     document.addEventListener('DOMContentLoaded', function() {
         console.log('Initializing Admin Game Control Panel...');
-        initializeWebSocket();
+
+        // Update JS status indicator
+        const jsStatus = document.getElementById('js-status');
+        if (jsStatus) {
+            jsStatus.textContent = 'JS Loaded';
+            jsStatus.style.background = '#28a745';
+            jsStatus.style.color = 'white';
+        }
+
+        // Initialize debug panel first
+        if (window.DebugPanel) {
+            window.DebugPanel.addMessage('INIT', 'Admin panel initialized');
+        }
+
+        // Initialize WebSocket
+        try {
+            initializeWebSocket();
+            if (jsStatus) {
+                jsStatus.textContent = 'JS Ready';
+            }
+        } catch (error) {
+            console.error('Error initializing WebSocket:', error);
+            if (jsStatus) {
+                jsStatus.textContent = 'JS Error';
+                jsStatus.style.background = '#dc3545';
+            }
+        }
+
+        // Run connection test after a short delay
+        setTimeout(() => {
+            if (window.DebugPanel) {
+                // Test WebSocket connection after 3 seconds
+                setTimeout(() => {
+                    if (window.wsManager && window.wsManager.isConnected) {
+                        window.DebugPanel.addMessage('TEST', 'Auto-testing WebSocket connection...');
+                        WebSocketUtils.sendSecureMessage({ 'type': 'get_live_stats' });
+                        window.DebugPanel.addMessage('SUCCESS', 'WebSocket connection test completed');
+                    } else {
+                        window.DebugPanel.addMessage('ERROR', 'WebSocket connection failed - check network and authentication');
+                    }
+                }, 3000);
+            }
+        }, 1000);
     });
+
+    // Debug functionality
+    window.DebugPanel = {
+        messages: [],
+        maxMessages: 50,
+
+        addMessage(type, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            this.messages.unshift(`[${timestamp}] ${type}: ${message}`);
+            if (this.messages.length > this.maxMessages) {
+                this.messages.pop();
+            }
+            this.updateDisplay();
+        },
+
+        updateDisplay() {
+            const debugMessages = document.getElementById('debug-messages');
+            if (debugMessages) {
+                debugMessages.innerHTML = this.messages.join('<br>') || 'No messages yet...';
+            }
+        },
+
+        updateStatus(status) {
+            const debugStatus = document.getElementById('debug-ws-status');
+            if (debugStatus) {
+                debugStatus.innerHTML = status;
+            }
+        },
+
+        clear() {
+            this.messages = [];
+            this.updateDisplay();
+        }
+    };
+
+    // Debug message logging will be added after wsManager is created
+
+    // Global debug functions
+    window.toggleDebugPanel = function() {
+        const panel = document.getElementById('debug-panel');
+        if (panel) {
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+    };
+
+    window.clearDebugMessages = function() {
+        window.DebugPanel.clear();
+    };
+
+    window.testWebSocketConnection = function() {
+        if (window.wsManager && window.wsManager.isConnected) {
+            window.DebugPanel.addMessage('TEST', 'Sending test message...');
+            WebSocketUtils.sendSecureMessage({ 'type': 'ping' });
+        } else {
+            window.DebugPanel.addMessage('ERROR', 'WebSocket not connected');
+        }
+    };
+
+    // Update debug status when connection changes
+    setInterval(() => {
+        if (window.wsManager && window.DebugPanel) {
+            const status = window.wsManager.isConnected ?
+                `Connected (${window.wsManager.socket?.readyState})` :
+                `Disconnected (attempts: ${window.wsManager.reconnectAttempts})`;
+            window.DebugPanel.updateStatus(status);
+        }
+    }, 1000);
 
     // Expose functions globally for template onclick handlers
     window.selectColor = GameControl.selectColor.bind(GameControl);

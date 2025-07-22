@@ -40,10 +40,51 @@ class WebSocketAuthMiddleware(BaseMiddleware):
         # Default fallback
         return '127.0.0.1'
 
+    def _validate_origin(self, origin: str) -> bool:
+        """Validate WebSocket origin"""
+        if not origin:
+            return False
+
+        # In development, allow localhost
+        allowed_origins = [
+            'http://127.0.0.1:8000',
+            'http://localhost:8000',
+            'https://127.0.0.1:8000',
+            'https://localhost:8000'
+        ]
+
+        # Add production domains here
+        # allowed_origins.extend(['https://yourdomain.com'])
+
+        return origin in allowed_origins
+
+    async def _close_connection(self, send, code: int, reason: str):
+        """Close WebSocket connection with error code"""
+        await send({
+            'type': 'websocket.close',
+            'code': code,
+            'text': reason.encode('utf-8')
+        })
+
     async def __call__(self, scope, receive, send):
         # Only apply to WebSocket connections
         if scope['type'] != 'websocket':
             return await super().__call__(scope, receive, send)
+
+        # Validate origin and user-agent
+        headers = dict(scope.get('headers', []))
+        origin = headers.get(b'origin', b'').decode('utf-8')
+        user_agent = headers.get(b'user-agent', b'').decode('utf-8')
+
+        # Validate origin in production
+        if not self._validate_origin(origin):
+            await self._close_connection(send, 4003, "Invalid origin")
+            return
+
+        # Basic user-agent validation
+        if not user_agent or len(user_agent) < 10:
+            await self._close_connection(send, 4004, "Invalid user agent")
+            return
 
         # Get session from scope
         session = scope.get('session', {})
@@ -205,35 +246,46 @@ class WebSocketRateLimitMiddleware(BaseMiddleware):
             # Admin users should have unlimited access
             return False
 
-        # Rate limiting only for regular user WebSocket connections
-        limit_key = f"ws_rate_limit:user:{client_ip}"
+        # Use a more sophisticated connection tracking
+        active_connections_key = f"ws_active_connections:{client_ip}"
+        connection_attempts_key = f"ws_connection_attempts:{client_ip}"
 
         # More generous limits for development
         if getattr(settings, 'DEBUG', False):
-            max_connections = 50  # Very high limit for development
+            max_active_connections = 200  # Much higher limit for development
+            max_attempts_per_minute = 100  # Allow many connection attempts
             timeout = 300  # 5 minutes timeout
         else:
-            max_connections = 20  # Production limit for users
+            max_active_connections = 50  # Production limit for users
+            max_attempts_per_minute = 30  # Reasonable attempts per minute
             timeout = 60  # 1 minute timeout
 
-        current_connections = cache.get(limit_key, 0)
+        # Check active connections (this should be managed by the consumer)
+        active_connections = cache.get(active_connections_key, 0)
 
-        if current_connections >= max_connections:
-            SecurityAuditLogger.log_security_event(
-                'websocket_rate_limit_exceeded',
-                ip_address=client_ip,
-                details={
-                    'current_connections': current_connections,
-                    'max_connections': max_connections,
-                    'path': scope.get('path', ''),
-                    'user_type': 'user'
-                }
-            )
-            return True
+        # Check connection attempts per minute
+        attempts_this_minute = cache.get(connection_attempts_key, 0)
 
-        # Increment connection count with appropriate timeout
-        cache.set(limit_key, current_connections + 1, timeout)
-        return False
+        # Allow connection if under both limits
+        if active_connections < max_active_connections and attempts_this_minute < max_attempts_per_minute:
+            # Increment attempt counter
+            cache.set(connection_attempts_key, attempts_this_minute + 1, 60)  # 1 minute window
+            return False
+
+        # Log rate limit exceeded
+        SecurityAuditLogger.log_security_event(
+            'websocket_rate_limit_exceeded',
+            ip_address=client_ip,
+            details={
+                'active_connections': active_connections,
+                'max_active_connections': max_active_connections,
+                'attempts_this_minute': attempts_this_minute,
+                'max_attempts_per_minute': max_attempts_per_minute,
+                'path': scope.get('path', ''),
+                'user_type': 'user'
+            }
+        )
+        return True
     
     def _get_client_ip(self, scope):
         """Extract client IP from WebSocket scope"""

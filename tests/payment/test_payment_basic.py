@@ -105,7 +105,7 @@ def test_payment_models():
         player=player,
         payment_intent_id='pi_test123',
         amount=100.00,
-        currency='USD',
+        currency='INR',
         transaction_type='deposit',
         status='pending',
         description='Test deposit',
@@ -114,12 +114,12 @@ def test_payment_models():
     )
     
     print(f"✅ Created PaymentTransaction: {payment_transaction}")
-    print(f"📊 Payment details: ${payment_transaction.amount} {payment_transaction.currency}")
+    print(f"📊 Payment details: ₹{payment_transaction.amount} {payment_transaction.currency}")
     print(f"🔒 Security: Fraud score {payment_transaction.fraud_score}, Flagged: {payment_transaction.is_flagged}")
-    
+
     # Test wallet operations
     initial_balance = player.balance
-    print(f"💰 Initial balance: ${initial_balance}")
+    print(f"💰 Initial balance: ₹{initial_balance}")
     
     # Test credit wallet
     player.credit_wallet(
@@ -127,15 +127,15 @@ def test_payment_models():
         transaction_type='deposit',
         description='Test deposit via payment gateway'
     )
-    print(f"💳 After deposit: ${player.balance}")
-    
+    print(f"💳 After deposit: ₹{player.balance}")
+
     # Test debit wallet
     success = player.debit_wallet(
         amount=50,
         transaction_type='withdrawal',
         description='Test withdrawal'
     )
-    print(f"💸 After withdrawal: ${player.balance}, Success: {success}")
+    print(f"💸 After withdrawal: ₹{player.balance}, Success: {success}")
     
     print("✅ Payment models tests completed!\n")
 

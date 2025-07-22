@@ -9,10 +9,13 @@
   {% load static %}
   <link rel="stylesheet" href="{% static 'css/main.css' %}">
 
+  <!-- Simple Design Overrides -->
+  <link rel="stylesheet" href="{% static 'css/simple-overrides.css' %}">
+
   <style>
     /* Login Page Specific Styles */
     body {
-      background: var(--primary-gradient);
+      background: var(--background-secondary);
       margin: 0;
       padding: var(--space-6);
       display: flex;
@@ -25,9 +28,9 @@
       max-width: 480px;
       width: 100%;
       background: var(--background-primary);
-      border-radius: var(--border-radius-2xl);
+      border-radius: var(--border-radius-lg);
       padding: var(--space-10);
-      box-shadow: var(--shadow-2xl);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
       text-align: center;
       border: 1px solid var(--border-color);
     }

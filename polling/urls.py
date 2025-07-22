@@ -38,6 +38,9 @@ urlpatterns = [
     path("api/responsible-gambling/set-limits/", views.set_gambling_limits, name="set_gambling_limits"),
     path("api/responsible-gambling/cooling-off/", views.trigger_cooling_off, name="trigger_cooling_off"),
 
+    # User Recent Bets API
+    path("api/my-recent-bets/", views.current_user_recent_bets, name="current_user_recent_bets"),
+
     # System Monitoring routes
     path("api/monitoring/dashboard/", views.system_monitoring_dashboard, name="monitoring_dashboard"),
     path("api/monitoring/resolve-alert/", views.resolve_alert, name="resolve_alert"),

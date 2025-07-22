@@ -516,7 +516,89 @@ def test_razorpay_simple(request):
     return FileResponse(open(file_path, 'rb'), content_type='text/html')
 
 
-@secure_api_endpoint
+@secure_api_endpoint(
+    authentication_required=True,
+    allowed_methods=['GET'],
+    rate_limit_per_minute=30,
+    rate_limit_per_hour=300
+)
+def current_user_recent_bets(request):
+    """Get recent bets for the current authenticated user"""
+    try:
+        # Check if user is authenticated via session
+        if not request.session.get('is_authenticated'):
+            return JsonResponse({
+                'success': False,
+                'error': 'Authentication required'
+            }, status=401)
+
+        user_id = request.session.get('user_id')
+        if not user_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'User ID not found in session'
+            }, status=401)
+
+        try:
+            player = Player.objects.get(id=user_id, is_active=True)
+        except Player.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Player not found'
+            }, status=404)
+
+        # Get recent bets (last 10)
+        recent_bets = Bet.objects.filter(
+            player=player
+        ).select_related('round').order_by('-created_at')[:10]
+
+        # Format bet data
+        bets_data = []
+        for bet in recent_bets:
+            bet_data = {
+                'id': bet.id,
+                'amount': bet.amount,
+                'color': bet.color,
+                'number': bet.number,
+                'correct': bet.correct,
+                'payout': bet.payout,
+                'created_at': bet.created_at.isoformat(),
+                'round_id': bet.round.period_id if bet.round else None,
+                'round_ended': bet.round.ended if bet.round else False,
+                'round_result': {
+                    'number': bet.round.result_number,
+                    'color': bet.round.result_color
+                } if bet.round and bet.round.ended else None
+            }
+            bets_data.append(bet_data)
+
+        response_data = {
+            'success': True,
+            'bets': bets_data,
+            'player': {
+                'username': player.username,
+                'balance': player.balance,
+                'total_bets': player.total_bets,
+                'total_wins': player.total_wins
+            }
+        }
+
+        return JsonResponse(response_data)
+
+    except Exception as e:
+        logger.error(f"Error fetching recent bets for user: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': 'Internal server error'
+        }, status=500)
+
+
+@secure_api_endpoint(
+    authentication_required=True,
+    allowed_methods=['GET'],
+    rate_limit_per_minute=20,
+    rate_limit_per_hour=200
+)
 def responsible_gambling_status(request):
     """Get responsible gambling status for the current player"""
     try:
@@ -640,7 +722,7 @@ def set_gambling_limits(request):
             session_loss_limit=session_loss_limit,
             session_time_limit=session_time_hours * 3600,  # Convert to seconds
             max_bet_amount=min(2000, daily_bet_limit // 10),  # Max 10% of daily limit per bet
-            min_bet_amount=100  # $1 minimum
+            min_bet_amount=100  # ₹1 minimum
         )
 
         responsible_gambling.set_player_limits(str(player.id), custom_limits)
@@ -689,7 +771,7 @@ def trigger_cooling_off(request):
         # Validate duration (1-168 hours, default 24)
         duration_hours = min(168, max(1, int(data.get('duration_hours', 24))))
 
-        await responsible_gambling.force_cooling_off(str(player.id), duration_hours)
+        responsible_gambling.force_cooling_off(str(player.id), duration_hours)
 
         logger.info(f"Player {player.username} triggered cooling-off period for {duration_hours} hours")
 

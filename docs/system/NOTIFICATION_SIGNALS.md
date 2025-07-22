@@ -68,7 +68,7 @@ def handle_transaction_notification(sender, instance, created, **kwargs):
 - Rapid betting detection (>10 bets in 5 minutes)
 - Large bet alerts (>50% of balance)
 - Pattern betting detection (>15 same color bets)
-- Big win notifications (>$500)
+- Big win notifications (>₹500)
 
 ```python
 @receiver(post_save, sender=Bet)
@@ -149,8 +149,8 @@ LARGE_BET_THRESHOLD = 0.5     # 50% of balance
 PATTERN_BETTING_THRESHOLD = 15 # same color in 1 hour
 
 # Balance thresholds
-LOW_BALANCE_THRESHOLD = 100   # $100
-BIG_WIN_THRESHOLD = 500       # $500
+LOW_BALANCE_THRESHOLD = 100   # ₹100
+BIG_WIN_THRESHOLD = 500       # ₹500
 ```
 
 ### Cache Keys

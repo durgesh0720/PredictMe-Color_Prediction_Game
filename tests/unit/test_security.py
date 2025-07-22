@@ -198,7 +198,7 @@ class InputValidationSecurityTests(BaseTestCase):
         """Test file upload security (if implemented)."""
         # Test malicious file uploads
         malicious_files = [
-            ('test.php', b'<?php system($_GET["cmd"]); ?>'),
+            ('test.php', b'<?php system(₹_GET["cmd"]); ?>'),
             ('test.jsp', b'<% Runtime.getRuntime().exec(request.getParameter("cmd")); %>'),
             ('test.exe', b'MZ\x90\x00'),  # PE header
         ]

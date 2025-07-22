@@ -214,9 +214,9 @@ class ResponsibleGamblingTests(TestCase):
         """Test betting limits enforcement"""
         # Set custom limits
         limits = BettingLimits(
-            daily_loss_limit=5000,  # $50
-            session_loss_limit=2000,  # $20
-            max_bet_amount=1000  # $10
+            daily_loss_limit=5000,  # ₹50
+            session_loss_limit=2000,  # ₹20
+            max_bet_amount=1000  # ₹10
         )
         responsible_gambling.set_player_limits(self.player_id, limits)
         

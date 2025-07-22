@@ -46,10 +46,87 @@
         <i class="fas fa-plus-circle"></i>
         Create Test Rounds
     </button>
-    <button class="btn btn-info" onclick="refreshData()" style="padding: 0.75rem 1.5rem;">
+    <button class="btn btn-info" onclick="refreshData()" style="padding: 0.75rem 1.5rem; margin-right: 1rem;">
         <i class="fas fa-sync-alt"></i>
         Refresh Data
     </button>
+    <button class="btn btn-secondary" onclick="toggleDebugPanel()" style="padding: 0.75rem 1.5rem;">
+        <i class="fas fa-bug"></i>
+        Debug Panel
+    </button>
+</div>
+
+<!-- Debug Panel -->
+<div id="debug-panel" style="display: none; margin-bottom: 2rem; padding: 1rem; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px;">
+    <h5 style="margin-bottom: 1rem;">
+        <i class="fas fa-bug"></i> Debug Information
+    </h5>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        <div>
+            <h6>WebSocket Status</h6>
+            <div id="debug-ws-status" style="font-family: monospace; font-size: 0.9rem; background: white; padding: 0.5rem; border-radius: 4px;">
+                Initializing...
+            </div>
+        </div>
+        <div>
+            <h6>Recent Messages</h6>
+            <div id="debug-messages" style="font-family: monospace; font-size: 0.8rem; background: white; padding: 0.5rem; border-radius: 4px; max-height: 200px; overflow-y: auto;">
+                No messages yet...
+            </div>
+        </div>
+    </div>
+    <div style="margin-top: 1rem;">
+        <button class="btn btn-sm btn-outline-secondary" onclick="clearDebugMessages()">Clear Messages</button>
+        <button class="btn btn-sm btn-outline-info" onclick="testWebSocketConnection()">Test Connection</button>
+    </div>
+</div>
+
+<!-- Global Statistics Dashboard -->
+<div class="global-stats-dashboard" style="margin-bottom: 2rem; padding: 1.5rem; background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
+    <h4 style="margin-bottom: 1rem; color: #495057;">
+        <i class="fas fa-chart-bar"></i> Live Statistics Overview
+    </h4>
+    <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+        <div class="stat-card" style="background: white; padding: 1rem; border-radius: 6px; text-align: center; border: 1px solid #e9ecef;">
+            <div class="stat-value" id="active-rounds-count" style="font-size: 2rem; font-weight: bold; color: #28a745;">
+                {{ active_rounds.count }}
+            </div>
+            <div class="stat-label" style="color: #6c757d; font-size: 0.9rem;">Active Rounds</div>
+        </div>
+        <div class="stat-card" style="background: white; padding: 1rem; border-radius: 6px; text-align: center; border: 1px solid #e9ecef;">
+            <div class="stat-value" style="font-size: 2rem; font-weight: bold; color: #007bff;">
+                <span id="red-total-amount">₹0</span>
+            </div>
+            <div class="stat-label" style="color: #6c757d; font-size: 0.9rem;">Red Bets</div>
+        </div>
+        <div class="stat-card" style="background: white; padding: 1rem; border-radius: 6px; text-align: center; border: 1px solid #e9ecef;">
+            <div class="stat-value" style="font-size: 2rem; font-weight: bold; color: #28a745;">
+                <span id="green-total-amount">₹0</span>
+            </div>
+            <div class="stat-label" style="color: #6c757d; font-size: 0.9rem;">Green Bets</div>
+        </div>
+        <div class="stat-card" style="background: white; padding: 1rem; border-radius: 6px; text-align: center; border: 1px solid #e9ecef;">
+            <div class="stat-value" style="font-size: 2rem; font-weight: bold; color: #6f42c1;">
+                <span id="violet-total-amount">₹0</span>
+            </div>
+            <div class="stat-label" style="color: #6c757d; font-size: 0.9rem;">Violet Bets</div>
+        </div>
+        <div class="stat-card" style="background: white; padding: 1rem; border-radius: 6px; text-align: center; border: 1px solid #e9ecef;">
+            <div class="stat-value" style="font-size: 2rem; font-weight: bold; color: #17a2b8;">
+                <span id="blue-total-amount">₹0</span>
+            </div>
+            <div class="stat-label" style="color: #6c757d; font-size: 0.9rem;">Blue Bets</div>
+        </div>
+    </div>
+    <div class="stats-timestamp" style="text-align: center; margin-top: 1rem; color: #6c757d; font-size: 0.8rem;">
+        <span id="stats-timestamp">Last updated: --</span>
+        <span id="connection-status" style="margin-left: 1rem; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; background: #dc3545; color: white;">
+            Connecting...
+        </span>
+        <span id="js-status" style="margin-left: 1rem; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; background: #ffc107; color: black;">
+            Loading JS...
+        </span>
+    </div>
 </div>
 
 <!-- Active Rounds -->
@@ -83,15 +160,15 @@
             <div class="round-summary">
                 <div class="summary-grid">
                     <div class="summary-item">
-                        <div class="summary-value">{{ round_data.total_bets }}</div>
+                        <div class="summary-value" id="total-betting-count">{{ round_data.total_bets }}</div>
                         <div class="summary-label">Total Bets</div>
                     </div>
                     <div class="summary-item">
-                        <div class="summary-value">₹{{ round_data.total_amount }}</div>
+                        <div class="summary-value" id="total-betting-amount">₹{{ round_data.total_amount }}</div>
                         <div class="summary-label">Total Amount</div>
                     </div>
                     <div class="summary-item">
-                        <div class="summary-value">{{ round_data.color_stats.red.users|add:round_data.color_stats.green.users|add:round_data.color_stats.violet.users|add:round_data.color_stats.blue.users }}</div>
+                        <div class="summary-value" id="total-betting-users">{{ round_data.color_stats.red.users|add:round_data.color_stats.green.users|add:round_data.color_stats.violet.users|add:round_data.color_stats.blue.users }}</div>
                         <div class="summary-label">Players</div>
                     </div>
                 </div>
@@ -104,9 +181,9 @@
                     <div class="color-icon {{ color }}">
                         <i class="fas fa-circle"></i>
                     </div>
-                    <div class="bet-amount">₹{{ stats.amount }}</div>
-                    <div class="bet-count">{{ stats.count }} bets</div>
-                    <div class="bet-users">{{ stats.users }} players</div>
+                    <div class="bet-amount color-amount-{{ color }}">₹{{ stats.amount }}</div>
+                    <div class="bet-count color-count-{{ color }}">{{ stats.count }} bets</div>
+                    <div class="bet-users color-users-{{ color }}">{{ stats.users }} players</div>
                 </div>
                 {% endfor %}
             </div>

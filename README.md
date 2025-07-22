@@ -95,6 +95,16 @@ WebSocket_Test/
    - Game: http://localhost:8000/
    - Admin Panel: http://localhost:8000/admin-panel/
 
+## 🧹 **Recently Organized Structure**
+
+This project has been recently reorganized for better maintainability:
+
+- **📄 Documentation**: All `.md` files moved to `docs/` with proper categorization
+- **🔧 Scripts**: All utility scripts organized in `scripts/` subdirectories
+- **🧪 Tests**: All test files properly categorized in `tests/`
+- **🐳 Docker**: Duplicate configuration files removed
+- **📁 Root**: Only essential project files remain in root directory
+
 ## Testing
 
 Run comprehensive tests using:
@@ -107,9 +117,14 @@ python -m pytest tests/unit/          # Unit tests
 python -m pytest tests/integration/   # Integration tests
 python -m pytest tests/payment/       # Payment system tests
 python -m pytest tests/wallet/        # Wallet system tests
+python -m pytest tests/admin/         # Admin panel tests
 
 # Run test shell script
 bash scripts/development/test_all.sh
+
+# Development and debugging
+python scripts/development/debug_timer.py        # Timer debugging
+python scripts/monitoring/diagnose_websocket_stability.py  # WebSocket diagnostics
 ```
 
 ## Deployment
@@ -125,11 +140,13 @@ Comprehensive documentation is organized in the `docs/` directory:
 
 ### 📚 **Quick Access**
 - **[Project Structure](docs/PROJECT_STRUCTURE.md)** - Complete project overview
-- **[File Management Guidelines](docs/project/FILE_MANAGEMENT_GUIDELINES.md)** - Organization standards
+- **[File Organization Standards](docs/project/FILE_ORGANIZATION_STANDARDS.md)** - Organization standards
+- **[File Management Guidelines](docs/project/FILE_MANAGEMENT_GUIDELINES.md)** - Management procedures
 - **[Admin Panel Guide](docs/admin/)** - Admin interface documentation
 - **[API Reference](docs/api/)** - API documentation
 - **[System Documentation](docs/system/)** - Technical guides
 - **[User Guides](docs/user/)** - End-user documentation
+- **[Solutions Database](docs/solutions/)** - Problem fixes and solutions
 
 ### 🔧 **Development Resources**
 - **Scripts**: Use `scripts/` for common development tasks
@@ -139,12 +156,40 @@ Comprehensive documentation is organized in the `docs/` directory:
 ## File Organization
 
 This project follows strict file organization guidelines:
-- **Root directory**: Only essential project files
+- **Root directory**: Only essential project files (manage.py, requirements.txt, README.md, etc.)
 - **Scripts**: Organized by purpose in `scripts/` subdirectories
-- **Documentation**: Categorized in `docs/` subdirectories
+- **Documentation**: Categorized in `docs/` subdirectories with proper structure
 - **Tests**: Structured by functionality in `tests/`
+- **No clutter**: All utility scripts, documentation, and test files properly organized
 
-See `docs/project/FILE_MANAGEMENT_GUIDELINES.md` for detailed organization rules.
+See `docs/project/FILE_ORGANIZATION_STANDARDS.md` for detailed organization rules and `docs/project/FILE_MANAGEMENT_GUIDELINES.md` for management procedures.
+
+## 🛠️ **Utility Scripts**
+
+Common development tasks are organized in the `scripts/` directory:
+
+```bash
+# Development and debugging
+scripts/development/debug_timer.py           # Timer system debugging
+scripts/development/run_tests.py             # Comprehensive test runner
+
+# Maintenance and fixes
+scripts/maintenance/fix_timer.py             # Timer system fixes
+scripts/maintenance/emergency_websocket_reset.py  # WebSocket emergency reset
+
+# Utilities and tools
+scripts/utilities/fix_balance_precision.py   # Balance precision fixes
+scripts/utilities/fix_all_currency.py        # Currency conversion fixes
+scripts/utilities/verify_currency_conversion.py  # Currency verification
+
+# Monitoring and diagnostics
+scripts/monitoring/diagnose_websocket_stability.py  # WebSocket diagnostics
+scripts/monitoring/payment_system_monitor.py        # Payment monitoring
+
+# Admin tools
+scripts/admin/create_admin.py                # Create admin user
+scripts/admin/check_admin_status.py          # Admin status check
+```
 
 ## Contributing
 

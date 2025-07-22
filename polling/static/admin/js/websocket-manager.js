@@ -104,8 +104,10 @@ class WebSocketManager {
             return;
         }
         
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/ws/control-panel/game-control/`;
+        // Use optimized WebSocket configuration
+        const wsUrl = window.WsConfig ?
+            window.WsConfig.adminUrl('game-control') :
+            `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/control-panel/game-control/`;
         
         try {
             this.socket = new WebSocket(wsUrl);

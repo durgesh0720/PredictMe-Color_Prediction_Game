@@ -174,7 +174,7 @@ class LoadTester:
         """Place a bet through WebSocket"""
         try:
             colors = ['red', 'green', 'violet', 'blue']
-            bet_amounts = [100, 200, 500, 1000]  # $1, $2, $5, $10
+            bet_amounts = [100, 200, 500, 1000]  # ₹1, ₹2, ₹5, ₹10
             
             bet_data = {
                 'type': 'place_bet',

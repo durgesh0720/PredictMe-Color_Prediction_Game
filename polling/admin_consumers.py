@@ -1,6 +1,7 @@
 import json
 import asyncio
 import logging
+import time
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.utils import timezone
@@ -278,21 +279,29 @@ class AdminGameConsumer(AsyncWebsocketConsumer):
             }))
     
     async def send_comprehensive_game_status(self):
-        """Send comprehensive real-time game status to admin"""
+        """Send comprehensive real-time game status to admin with caching and rate limiting"""
         try:
+            # Rate limiting - max once per 2 seconds
+            current_time = time.time()
+            if hasattr(self, '_last_status_update'):
+                if current_time - self._last_status_update < 2:
+                    return
+
+            self._last_status_update = current_time
+
             # Get active rounds and recently ended rounds
             @database_sync_to_async
             def get_rounds_data():
                 from datetime import timedelta
                 recent_time = timezone.now() - timedelta(minutes=10)
 
-                # Get active rounds (not ended) - Only main room
+                # Get active rounds (not ended) - Only main room, with pagination
                 active_rounds = GameRound.objects.filter(
                     room='main',
                     ended=False
                 ).filter(
                     Q(bet__isnull=False) | Q(start_time__gte=recent_time)
-                ).distinct().order_by('-start_time')
+                ).distinct().order_by('-start_time')[:5]  # Limit to 5 active rounds
 
                 # Get recently ended rounds
                 ended_rounds = GameRound.objects.filter(
@@ -359,7 +368,7 @@ class AdminGameConsumer(AsyncWebsocketConsumer):
                 time_remaining = max(0, ROUND_DURATION - time_elapsed)
 
                 round_data = {
-                    'round_id': round_obj.id,
+                    'round_id': str(round_obj.id),
                     'period_id': round_obj.period_id,
                     'room': round_obj.room,
                     'ended': round_obj.ended,
@@ -467,7 +476,7 @@ class AdminGameConsumer(AsyncWebsocketConsumer):
                     time_remaining = max(0, ROUND_DURATION - time_elapsed)
 
                     timers.append({
-                        'round_id': round_obj.id,
+                        'round_id': str(round_obj.id),
                         'period_id': round_obj.period_id,
                         'room': round_obj.room,
                         'time_remaining': int(time_remaining),
@@ -547,7 +556,7 @@ class AdminGameConsumer(AsyncWebsocketConsumer):
                 time_remaining = max(0, ROUND_DURATION - time_elapsed)
 
                 states[round_obj.id] = {
-                    'round_id': round_obj.id,
+                    'round_id': str(round_obj.id),
                     'period_id': round_obj.period_id,
                     'ended': round_obj.ended,
                     'time_remaining': int(time_remaining),
@@ -647,11 +656,11 @@ class AdminGameConsumer(AsyncWebsocketConsumer):
         """Handle timer synchronization update from user game consumer"""
         await self.send(text_data=json.dumps({
             'type': 'timer_sync',
-            'round_id': event['round_id'],
-            'time_remaining': event['time_remaining'],
-            'phase': event['phase'],
-            'room': event['room'],
-            'timestamp': event['timestamp']
+            'round_id': event.get('round_id'),
+            'time_remaining': event.get('time_remaining', 0),
+            'phase': event.get('phase', 'unknown'),
+            'room': event.get('room', 'unknown'),
+            'timestamp': event.get('timestamp')
         }))
 
     async def bet_placed_admin_update(self, event):
@@ -673,15 +682,24 @@ class AdminGameConsumer(AsyncWebsocketConsumer):
 
     async def timer_update(self, event):
         """Handle timer update from user game consumer for perfect synchronization"""
-        await self.send(text_data=json.dumps({
+        # Build response data with required fields
+        response_data = {
             'type': 'timer_update',
-            'time_remaining': event['time_remaining'],
-            'phase': event['phase'],
-            'round_id': event['round_id'],
-            'timestamp': event['timestamp'],
-            'server_timestamp': event['server_timestamp'],
-            'round_start_time': event['round_start_time']
-        }))
+            'time_remaining': event.get('time_remaining', 0),
+            'phase': event.get('phase', 'unknown'),
+        }
+
+        # Add optional fields if present
+        if 'round_id' in event:
+            response_data['round_id'] = event['round_id']
+        if 'timestamp' in event:
+            response_data['timestamp'] = event['timestamp']
+        if 'server_timestamp' in event:
+            response_data['server_timestamp'] = event['server_timestamp']
+        if 'round_start_time' in event:
+            response_data['round_start_time'] = event['round_start_time']
+
+        await self.send(text_data=json.dumps(response_data))
 
 
 class AdminDashboardConsumer(AsyncWebsocketConsumer):

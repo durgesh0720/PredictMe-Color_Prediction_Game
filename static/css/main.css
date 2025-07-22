@@ -1,11 +1,8 @@
-/* Color Prediction Game - Modern Enhanced Stylesheet */
+/* Color Prediction Game - Simple Clean Stylesheet */
 
-/* CSS Variables for consistent theming and modern design */
+/* CSS Variables for consistent theming and clean design */
 :root {
-    /* Primary Colors - Enhanced with more variations */
-    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --primary-gradient-light: linear-gradient(135deg, #a5b4fc 0%, #c4b5fd 100%);
-    --primary-gradient-dark: linear-gradient(135deg, #4c51bf 0%, #5b21b6 100%);
+    /* Primary Colors - Simple and clean */
     --primary-color: #667eea;
     --primary-hover: #5a67d8;
     --primary-light: #a5b4fc;
@@ -427,14 +424,13 @@ select,
 textarea {
     width: 100%;
     padding: var(--space-3) var(--space-4);
-    border: var(--border-width-thick) solid var(--border-color);
-    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
     font-size: var(--text-base);
     font-family: inherit;
-    transition: var(--transition-smooth);
+    transition: border-color 0.2s ease;
     background: var(--background-primary);
     color: var(--text-primary);
-    line-height: var(--leading-normal);
 }
 
 input::placeholder,
@@ -454,8 +450,6 @@ select:focus,
 textarea:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    transform: translateY(-1px);
 }
 
 input:disabled,
@@ -498,78 +492,49 @@ textarea:disabled {
     font-size: var(--text-xs);
 }
 
-/* Enhanced Button Styles */
+/* Simple Button Styles */
 .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: var(--space-2);
     padding: var(--space-3) var(--space-6);
-    background: var(--primary-gradient);
-    color: var(--text-on-primary);
+    background: var(--primary-color);
+    color: white;
     border: none;
-    border-radius: var(--border-radius-lg);
+    border-radius: var(--border-radius-md);
     font-size: var(--text-base);
     font-weight: var(--font-semibold);
     font-family: inherit;
     cursor: pointer;
-    transition: var(--transition-smooth);
+    transition: background-color 0.2s ease;
     text-decoration: none;
     text-align: center;
     min-width: 120px;
-    position: relative;
-    overflow: hidden;
     white-space: nowrap;
     user-select: none;
-    -webkit-user-select: none;
-    line-height: var(--leading-none);
-}
-
-.btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s;
-}
-
-.btn:hover::before {
-    left: 100%;
 }
 
 .btn:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-colored-lg);
-    filter: brightness(1.05);
+    background: var(--primary-hover);
 }
 
 .btn:active {
-    transform: translateY(-1px);
-    transition: var(--transition-fast);
+    background: var(--primary-dark);
 }
 
 .btn:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+    outline: 2px solid var(--primary-light);
+    outline-offset: 2px;
 }
 
 .btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
-    transform: none;
-    filter: none;
 }
 
 .btn:disabled:hover {
-    transform: none;
-    box-shadow: none;
-}
-
-.btn:disabled::before {
-    display: none;
+    background: var(--primary-color);
 }
 
 /* Button Sizes */
@@ -577,14 +542,12 @@ textarea:disabled {
     padding: var(--space-1) var(--space-3);
     font-size: var(--text-xs);
     min-width: 60px;
-    border-radius: var(--border-radius);
 }
 
 .btn-sm {
     padding: var(--space-2) var(--space-4);
     font-size: var(--text-sm);
     min-width: 80px;
-    border-radius: var(--border-radius);
 }
 
 .btn-lg {
@@ -1128,20 +1091,14 @@ textarea:disabled {
 
 /* ===== MODERN CARD COMPONENTS ===== */
 
-/* Enhanced Card System */
+/* Simple Card System */
 .card {
     background: var(--background-primary);
-    border-radius: var(--border-radius-xl);
-    box-shadow: var(--shadow-lg);
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     overflow: hidden;
-    transition: var(--transition-smooth);
     border: 1px solid var(--border-color);
     position: relative;
-}
-
-.card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-2xl);
 }
 
 .card-header {
@@ -1279,80 +1236,45 @@ textarea:disabled {
     letter-spacing: 0.05em;
 }
 
-/* Enhanced Color Boxes for Game */
+/* Simple Color Boxes for Game */
 .color-box {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 80px;
-    border-radius: var(--border-radius-xl);
-    transition: var(--transition-smooth);
+    min-height: 70px;
+    border-radius: var(--border-radius-lg);
+    transition: all 0.2s ease;
     cursor: pointer;
-    overflow: hidden;
     font-weight: var(--font-bold);
     font-size: var(--text-lg);
-    color: var(--text-on-primary);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-    border: 2px solid transparent;
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
     user-select: none;
-    -webkit-user-select: none;
-}
-
-.color-box::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.15) 50%, transparent 70%);
-    transform: translateX(-100%);
-    transition: transform 0.6s ease;
-    z-index: 1;
-}
-
-.color-box::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%, rgba(0, 0, 0, 0.1) 100%);
-    z-index: 2;
-}
-
-.color-box:hover::before {
-    transform: translateX(100%);
 }
 
 .color-box:hover {
-    transform: translateY(-6px) scale(1.02);
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
-    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .color-box:active {
-    transform: translateY(-2px) scale(0.98);
-    transition: var(--transition-fast);
+    transform: translateY(0);
 }
 
 .color-box.selected {
-    transform: translateY(-4px) scale(1.05);
-    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.9), 0 15px 35px rgba(0, 0, 0, 0.3);
-    border-color: rgba(255, 255, 255, 0.8);
+    border: 2px solid white;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
 }
 
 .color-box.disabled {
-    opacity: 0.4;
+    opacity: 0.5;
     cursor: not-allowed;
-    transform: none;
-    filter: grayscale(0.5);
 }
 
 .color-box.disabled:hover {
     transform: none;
     box-shadow: none;
-    border-color: transparent;
 }
 
 .color-box.disabled::before {
@@ -1411,15 +1333,14 @@ textarea:disabled {
     z-index: 4;
 }
 
-/* Enhanced Form Controls */
+/* Simple Form Controls */
 .form-control {
-    transition: all 0.3s ease;
-    border-radius: 8px;
+    transition: border-color 0.2s ease;
+    border-radius: var(--border-radius-md);
 }
 
 .form-control:focus {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+    border-color: var(--primary-color);
 }
 
 /* Loading Spinner Improvements */

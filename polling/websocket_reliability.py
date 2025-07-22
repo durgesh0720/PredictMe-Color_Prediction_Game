@@ -38,13 +38,13 @@ class ReliableWebSocketManager:
         self.retry_task: Optional[asyncio.Task] = None
         self.message_handlers: Dict[str, Callable] = {}
         
-        # Configuration
-        self.cleanup_interval = 30  # seconds
-        self.retry_interval = 5     # seconds
-        self.max_pending_messages = 1000
+        # Configuration - Reduced for stability
+        self.cleanup_interval = 10  # seconds (faster cleanup)
+        self.retry_interval = 10    # seconds (slower retries)
+        self.max_pending_messages = 100  # Much lower limit
         
-        # Start background tasks
-        self._start_background_tasks()
+        # Start background tasks when first message is sent
+        self._tasks_started = False
     
     def _start_background_tasks(self):
         """Start background tasks for cleanup and retry"""
@@ -55,13 +55,17 @@ class ReliableWebSocketManager:
             self.retry_task = asyncio.create_task(self._retry_failed_messages())
     
     async def send_reliable_message(
-        self, 
-        group_name: str, 
-        message_data: dict, 
+        self,
+        group_name: str,
+        message_data: dict,
         critical: bool = False,
-        timeout: float = 10.0,
-        max_retries: int = 3
+        timeout: float = 5.0,  # Reduced timeout
+        max_retries: int = 2   # Reduced retries
     ) -> str:
+        # Start background tasks on first use
+        if not self._tasks_started:
+            self._start_background_tasks()
+            self._tasks_started = True
         """
         Send a message with guaranteed delivery
         Returns message_id for tracking

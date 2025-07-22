@@ -4,8 +4,8 @@ from django.test import TestCase
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from datetime import timedelta
-from .models import Player, GameRound, Bet, Admin, Transaction, AdminColorSelection
-from .security import PasswordSecurity, InputValidator
+from polling.models import Player, GameRound, Bet, Admin, Transaction, AdminColorSelection
+from polling.security import PasswordSecurity, InputValidator
 
 
 class PlayerModelTest(TestCase):
@@ -27,7 +27,7 @@ class PlayerModelTest(TestCase):
         
         self.assertEqual(player.username, 'testuser')
         self.assertEqual(player.email, 'test@example.com')
-        self.assertEqual(player.balance, 1000)  # Default balance
+        self.assertEqual(player.balance, 0)  # Default balance is 0 - users must deposit first
         self.assertTrue(player.is_active)
         self.assertFalse(player.is_verified)
     
@@ -60,18 +60,22 @@ class PlayerModelTest(TestCase):
     def test_player_win_rate_calculation(self):
         """Test win rate calculation with bets"""
         player = Player.objects.create(**self.player_data)
-        game_round = GameRound.objects.create(room='test')
-        
-        # Create some bets
-        Bet.objects.create(player=player, round=game_round, amount=100, correct=True)
-        Bet.objects.create(player=player, round=game_round, amount=100, correct=False)
-        Bet.objects.create(player=player, round=game_round, amount=100, correct=True)
-        
+
+        # Create different game rounds for each bet (due to unique constraint)
+        game_round1 = GameRound.objects.create(room='test1')
+        game_round2 = GameRound.objects.create(room='test2')
+        game_round3 = GameRound.objects.create(room='test3')
+
+        # Create some bets in different rounds
+        Bet.objects.create(player=player, round=game_round1, amount=100, correct=True)
+        Bet.objects.create(player=player, round=game_round2, amount=100, correct=False)
+        Bet.objects.create(player=player, round=game_round3, amount=100, correct=True)
+
         # Update player stats
         player.total_bets = 3
         player.total_wins = 2
         player.save()
-        
+
         self.assertEqual(player.win_rate, 66.67)
     
     def test_update_last_login(self):

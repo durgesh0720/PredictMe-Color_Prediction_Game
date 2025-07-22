@@ -8,6 +8,7 @@ import time
 from typing import Dict, Optional, Tuple
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from django.conf import settings
 from django.utils import timezone
 from django.db import transaction
 from django.db.models import Sum, Count
@@ -18,13 +19,30 @@ logger = logging.getLogger(__name__)
 @dataclass
 class BettingLimits:
     """Player betting limits configuration"""
-    daily_loss_limit: int = 10000  # Default $100
-    daily_bet_limit: int = 50000   # Default $500
-    session_loss_limit: int = 5000 # Default $50
-    session_time_limit: int = 7200 # Default 2 hours in seconds
-    max_bet_amount: int = 2000     # Default $20 per bet
-    min_bet_amount: int = 100      # Default $1 per bet
-    cooling_off_period: int = 86400 # 24 hours in seconds
+    daily_loss_limit: int = None
+    daily_bet_limit: int = None
+    session_loss_limit: int = None
+    session_time_limit: int = None
+    max_bet_amount: int = None
+    min_bet_amount: int = None
+    cooling_off_period: int = None
+
+    def __post_init__(self):
+        """Initialize with values from Django settings if not provided"""
+        if self.daily_loss_limit is None:
+            self.daily_loss_limit = getattr(settings, 'RG_DAILY_LOSS_LIMIT', 10000)
+        if self.daily_bet_limit is None:
+            self.daily_bet_limit = getattr(settings, 'RG_DAILY_BET_LIMIT', 50000)
+        if self.session_loss_limit is None:
+            self.session_loss_limit = getattr(settings, 'RG_SESSION_LOSS_LIMIT', 5000)
+        if self.session_time_limit is None:
+            self.session_time_limit = getattr(settings, 'RG_SESSION_TIME_LIMIT', 7200)
+        if self.max_bet_amount is None:
+            self.max_bet_amount = getattr(settings, 'RG_MAX_BET_AMOUNT', 2000)
+        if self.min_bet_amount is None:
+            self.min_bet_amount = getattr(settings, 'RG_MIN_BET_AMOUNT', 100)
+        if self.cooling_off_period is None:
+            self.cooling_off_period = getattr(settings, 'RG_COOLING_OFF_PERIOD', 86400)
 
 @dataclass
 class SessionData:
@@ -59,7 +77,8 @@ class ResponsibleGamblingManager:
         self.session_timeout = 1800  # 30 minutes of inactivity
         self.warning_thresholds = [0.5, 0.75, 0.9]  # Warning at 50%, 75%, 90% of limits
         
-        self.start_monitoring()
+        # Don't start monitoring during import - will be started when needed
+        # self.start_monitoring()
     
     def start_monitoring(self):
         """Start background monitoring tasks"""
@@ -169,10 +188,10 @@ class ResponsibleGamblingManager:
             
             # Check basic bet amount limits
             if bet_amount < limits.min_bet_amount:
-                return False, f"Minimum bet amount is ${limits.min_bet_amount/100:.2f}"
-            
+                return False, f"Minimum bet amount is ₹{limits.min_bet_amount/100:.2f}"
+
             if bet_amount > limits.max_bet_amount:
-                return False, f"Maximum bet amount is ${limits.max_bet_amount/100:.2f}"
+                return False, f"Maximum bet amount is ₹{limits.max_bet_amount/100:.2f}"
             
             # Check if player has active session
             if player_id not in self.active_sessions:
@@ -191,14 +210,14 @@ class ResponsibleGamblingManager:
             daily_stats = await self._get_daily_stats(player_id)
             
             if daily_stats['total_bets'] + bet_amount > limits.daily_bet_limit:
-                return False, f"Daily betting limit of ${limits.daily_bet_limit/100:.2f} would be exceeded"
-            
+                return False, f"Daily betting limit of ₹{limits.daily_bet_limit/100:.2f} would be exceeded"
+
             if daily_stats['total_losses'] + bet_amount > limits.daily_loss_limit:
-                return False, f"Daily loss limit of ${limits.daily_loss_limit/100:.2f} would be exceeded"
-            
+                return False, f"Daily loss limit of ₹{limits.daily_loss_limit/100:.2f} would be exceeded"
+
             # Check session limits
             if session.total_losses + bet_amount > limits.session_loss_limit:
-                return False, f"Session loss limit of ${limits.session_loss_limit/100:.2f} would be exceeded"
+                return False, f"Session loss limit of ₹{limits.session_loss_limit/100:.2f} would be exceeded"
             
             # Check session time limit
             session_duration = current_time - session.start_time
@@ -239,41 +258,47 @@ class ResponsibleGamblingManager:
     async def _get_daily_stats(self, player_id: str) -> dict:
         """Get daily betting statistics for a player"""
         try:
-            today = timezone.now().date()
-            
-            from django.db import connection
-            with connection.cursor() as cursor:
-                cursor.execute("""
-                    SELECT 
-                        COALESCE(SUM(amount), 0) as total_bets,
-                        COUNT(*) as bet_count
-                    FROM polling_bet 
-                    WHERE player_id = %s 
-                    AND DATE(created_at) = %s
-                """, [player_id, today])
-                
-                bet_stats = cursor.fetchone()
-                total_bets, bet_count = bet_stats or (0, 0)
-                
-                # Calculate losses (bets - winnings)
-                cursor.execute("""
-                    SELECT COALESCE(SUM(amount), 0) as total_winnings
-                    FROM polling_transaction 
-                    WHERE player_id = %s 
-                    AND transaction_type = 'win'
-                    AND DATE(created_at) = %s
-                """, [player_id, today])
-                
-                winnings = cursor.fetchone()[0] or 0
-                total_losses = max(0, total_bets - winnings)
-                
-                return {
-                    'total_bets': total_bets,
-                    'total_losses': total_losses,
-                    'bet_count': bet_count,
-                    'total_winnings': winnings
-                }
-        
+            from channels.db import database_sync_to_async
+
+            @database_sync_to_async
+            def get_stats():
+                today = timezone.now().date()
+
+                from django.db import connection
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT
+                            COALESCE(SUM(amount), 0) as total_bets,
+                            COUNT(*) as bet_count
+                        FROM polling_bet
+                        WHERE player_id = %s
+                        AND DATE(created_at) = %s
+                    """, [player_id, today])
+
+                    bet_stats = cursor.fetchone()
+                    total_bets, bet_count = bet_stats or (0, 0)
+
+                    # Calculate losses (bets - winnings)
+                    cursor.execute("""
+                        SELECT COALESCE(SUM(amount), 0) as total_winnings
+                        FROM polling_transaction
+                        WHERE player_id = %s
+                        AND transaction_type = 'win'
+                        AND DATE(created_at) = %s
+                    """, [player_id, today])
+
+                    winnings = cursor.fetchone()[0] or 0
+                    total_losses = max(0, total_bets - winnings)
+
+                    return {
+                        'total_bets': total_bets,
+                        'total_losses': total_losses,
+                        'bet_count': bet_count,
+                        'total_winnings': winnings
+                    }
+
+            return await get_stats()
+
         except Exception as e:
             logger.error(f"Error getting daily stats for player {player_id}: {e}")
             return {'total_bets': 0, 'total_losses': 0, 'bet_count': 0, 'total_winnings': 0}

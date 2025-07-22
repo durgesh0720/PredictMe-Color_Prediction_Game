@@ -746,21 +746,9 @@ def admin_select_color(request):
             except Exception as e:
                 logger.error(f"Failed to broadcast color selection event: {e}")
 
-        # Trigger immediate round ending since admin has made selection
-        try:
-            # Send immediate round end signal to the game consumer
-            async_to_sync(channel_layer.group_send)(
-                "game_main",
-                {
-                    'type': 'admin_force_round_end',
-                    'round_id': str(round_id),
-                    'admin_selected_color': selected_color,
-                    'timestamp': timezone.now().timestamp()
-                }
-            )
-            logger.info(f"Sent force round end signal for round {round_id}")
-        except Exception as e:
-            logger.error(f"Failed to send force round end signal: {e}")
+        # DO NOT trigger immediate round ending - let the timer complete naturally
+        # Admin selection is stored and will be used when the round ends normally
+        logger.info(f"Admin color selection {selected_color} stored for round {round_id} - round will continue until timer expires")
 
         return JsonResponse({
             'success': True,

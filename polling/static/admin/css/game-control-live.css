@@ -614,3 +614,101 @@
         display: none !important;
     }
 }
+
+/* ========================================
+   Live Updates and Animations
+   ======================================== */
+
+/* Round status indicators */
+.round-status {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+    display: inline-block;
+}
+
+.round-status.betting-open {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.round-status.round-ended {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* New bet flash animation */
+.new-bet-flash {
+    animation: betFlash 1s ease-in-out;
+}
+
+@keyframes betFlash {
+    0% { background-color: inherit; }
+    50% { background-color: #fff3cd; border-color: #ffeaa7; }
+    100% { background-color: inherit; }
+}
+
+/* Stats update animation */
+.stats-updated {
+    animation: statsUpdate 0.5s ease-in-out;
+}
+
+@keyframes statsUpdate {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Connection status indicator */
+.connection-status {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+.connection-status.connected {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.connection-status.disconnected {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* Loading states */
+.loading-stats {
+    opacity: 0.6;
+    position: relative;
+}
+
+.loading-stats::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

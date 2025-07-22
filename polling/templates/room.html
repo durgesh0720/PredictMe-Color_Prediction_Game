@@ -12,10 +12,13 @@
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/main.css' %}">
 
+    <!-- Simple Design Overrides -->
+    <link rel="stylesheet" href="{% static 'css/simple-overrides.css' %}">
+
     <style>
         /* Game Room Specific Styles */
         body {
-            background: var(--primary-gradient);
+            background: var(--background-primary);
             min-height: 100vh;
             padding: var(--space-6) var(--space-4);
         }
@@ -80,9 +83,9 @@
 
         .betting-card {
             background: var(--background-primary);
-            border-radius: var(--border-radius-xl);
+            border-radius: var(--border-radius-lg);
             padding: var(--space-6);
-            box-shadow: var(--shadow-lg);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             border: 1px solid var(--border-color);
         }
 
@@ -126,6 +129,110 @@
             margin-bottom: var(--space-6);
         }
 
+        /* Simplified Color Box Styles */
+        .color-box {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 70px;
+            border-radius: var(--border-radius-lg);
+            transition: all 0.2s ease;
+            cursor: pointer;
+            font-weight: var(--font-bold);
+            color: white;
+            text-shadow: none;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            user-select: none;
+        }
+
+        .color-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .color-box:active {
+            transform: translateY(0);
+        }
+
+        .color-box.selected {
+            border: 2px solid white;
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
+        }
+
+        .color-box.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .color-box-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-1);
+        }
+
+        .color-box-label {
+            font-weight: var(--font-bold);
+            font-size: var(--text-base);
+        }
+
+        .color-box-multiplier {
+            font-size: var(--text-sm);
+            opacity: 0.9;
+        }
+
+        .color-box-bet-count {
+            position: absolute;
+            top: var(--space-2);
+            right: var(--space-2);
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: var(--text-xs);
+            font-weight: var(--font-semibold);
+        }
+
+        /* Override fancy styles from main.css */
+        .color-box::before,
+        .color-box::after {
+            display: none !important;
+        }
+
+        .color-box {
+            background: var(--game-red) !important;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        .color-box[data-color="red"] {
+            background: var(--game-red) !important;
+        }
+
+        .color-box[data-color="green"] {
+            background: var(--game-green) !important;
+        }
+
+        .color-box[data-color="violet"] {
+            background: var(--game-violet) !important;
+        }
+
+        .color-box:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        .color-box:active {
+            transform: translateY(0) !important;
+        }
+
+        .color-box.selected {
+            transform: none !important;
+            border: 2px solid white !important;
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5) !important;
+        }
+
         .bet-controls {
             display: flex;
             flex-direction: column;
@@ -154,24 +261,23 @@
         .bet-input {
             flex: 1;
             padding: var(--space-3);
-            border: var(--border-width-thick) solid var(--border-color);
-            border-radius: var(--border-radius-lg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-md);
             font-size: var(--text-base);
             font-weight: var(--font-medium);
             text-align: center;
-            transition: var(--transition-smooth);
+            transition: border-color 0.2s ease;
         }
 
         .bet-input:focus {
             outline: none;
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
         .players-card {
             background: var(--background-primary);
-            border-radius: var(--border-radius-xl);
+            border-radius: var(--border-radius-lg);
             padding: var(--space-6);
-            box-shadow: var(--shadow-lg);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             border: 1px solid var(--border-color);
         }
 
@@ -253,11 +359,135 @@
             font-size: var(--text-sm);
         }
 
-        .no-bets-message {
+        .no-bets-message, .loading-message {
             text-align: center;
             padding: var(--space-6);
             color: var(--text-secondary);
             font-style: italic;
+        }
+
+        /* Recent Bets Styles */
+        .bet-item {
+            padding: var(--space-3);
+            margin-bottom: var(--space-2);
+            background: var(--background-secondary);
+            border-radius: var(--border-radius-md);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .bet-item:hover {
+            background: var(--background-tertiary);
+        }
+
+        .bet-info {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-1);
+            flex: 1;
+        }
+
+        .bet-round {
+            font-weight: var(--font-semibold);
+            color: var(--text-primary);
+            font-size: var(--text-sm);
+        }
+
+        .bet-details {
+            font-size: var(--text-xs);
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+        }
+
+        .bet-status {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: var(--space-1);
+        }
+
+        .bet-result {
+            font-size: var(--text-xs);
+            padding: 2px 6px;
+            border-radius: var(--border-radius-sm);
+            font-weight: var(--font-medium);
+            text-transform: uppercase;
+        }
+
+        .bet-result.win {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .bet-result.loss {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .bet-result.pending {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .color-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 4px;
+        }
+
+        .color-dot.red {
+            background: #ef4444;
+        }
+
+        .color-dot.green {
+            background: #22c55e;
+        }
+
+        .color-dot.violet {
+            background: #8b5cf6;
+        }
+
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: var(--text-xs);
+            border: 1px solid var(--border-color);
+            background: var(--background-primary);
+            color: var(--text-secondary);
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .btn-sm:hover {
+            background: var(--background-secondary);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary {
+            background: var(--background-secondary);
+        }
+
+        /* Simplified button styles */
+        .btn {
+            background: var(--primary-color) !important;
+            border-radius: var(--border-radius-md) !important;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover) !important;
+            transform: none !important;
+        }
+
+        .btn:active {
+            transform: none !important;
         }
 
         .messages-card {
@@ -306,12 +536,11 @@
             text-align: center;
             padding: var(--space-6);
             margin: var(--space-6) 0;
-            border-radius: var(--border-radius-xl);
+            border-radius: var(--border-radius-lg);
             font-size: var(--text-xl);
             font-weight: var(--font-bold);
-            box-shadow: var(--shadow-lg);
-            border: 2px solid transparent;
-            transition: var(--transition-smooth);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border: 1px solid transparent;
         }
 
         .result-display.win {
@@ -332,11 +561,10 @@
             text-align: center;
             padding: var(--space-3);
             margin-bottom: var(--space-6);
-            border-radius: var(--border-radius-lg);
+            border-radius: var(--border-radius-md);
             font-weight: var(--font-bold);
             font-size: var(--text-sm);
             text-transform: uppercase;
-            letter-spacing: 0.05em;
         }
 
         .phase-betting {
@@ -351,22 +579,14 @@
             border: 1px solid var(--warning-200);
         }
 
-        /* Enhanced Loading skeleton for result phase */
+        /* Simple Loading for result phase */
         .result-loading {
             text-align: center;
             padding: var(--space-6);
             margin: var(--space-6) 0;
-            border-radius: var(--border-radius-xl);
-            background: linear-gradient(90deg, var(--background-secondary) 25%, var(--background-tertiary) 50%, var(--background-secondary) 75%);
-            background-size: 200% 100%;
-            animation: loading 1.5s infinite;
-            box-shadow: var(--shadow);
+            border-radius: var(--border-radius-lg);
+            background: var(--background-secondary);
             border: 1px solid var(--border-color);
-        }
-
-        @keyframes loading {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
         }
 
         .result-skeleton {
@@ -382,13 +602,12 @@
         /* Deposit Reminder */
         .deposit-reminder {
             background: var(--warning-50);
-            border: 2px solid var(--warning-300);
-            border-radius: var(--border-radius-xl);
+            border: 1px solid var(--warning-300);
+            border-radius: var(--border-radius-lg);
             padding: var(--space-6);
             margin: var(--space-4) 0;
             text-align: center;
             display: none;
-            box-shadow: var(--shadow-lg);
         }
 
         .deposit-reminder.show {
@@ -482,7 +701,7 @@
                 ⏰ <span id="timer">--</span>
             </div>
             <div class="balance-display">
-                💰 Balance: $<span id="balance">{{ user_balance }}</span>
+                💰 Balance: ₹<span id="balance">{{ user_balance }}</span>
             </div>
             <div class="player-count-display">
                 👥 Players: <span id="player-count">0</span>
@@ -498,7 +717,7 @@
         <div id="deposit-reminder" class="deposit-reminder">
             <h4>💰 Add Money to Your Wallet</h4>
             <p>You need to add money to your wallet before placing bets.</p>
-            <p>Minimum deposit: $10</p>
+            <p>Minimum deposit: ₹10</p>
         </div>
 
         <!-- Main Game Layout -->
@@ -540,19 +759,12 @@
                         </div>
                         <div class="color-box-bet-count" id="violet-count">0</div>
                     </div>
-                    <div class="color-box" data-color="blue" style="background-color: var(--game-blue);">
-                        <div class="color-box-content">
-                            <div class="color-box-label">BLUE</div>
-                            <div class="color-box-multiplier">2.5x</div>
-                        </div>
-                        <div class="color-box-bet-count" id="blue-count">0</div>
-                    </div>
                 </div>
 
                 <!-- Bet Controls -->
                 <div class="bet-controls">
                     <div class="bet-amount-section">
-                        <label class="bet-amount-label">Bet Amount ($)</label>
+                        <label class="bet-amount-label">Bet Amount (₹)</label>
                         <div class="bet-amount-input">
                             <input type="number" id="bet-amount" class="bet-input" value="10" min="1" max="1000">
                             <button id="place-bet-btn" class="btn btn-primary" disabled>Place Bet</button>
@@ -567,13 +779,17 @@
                 </div>
             </div>
 
-            <!-- Players Section -->
+            <!-- Recent Bets Section -->
             <div class="players-card">
                 <div class="players-header">
-                    <h3 class="players-title">Players & Bets</h3>
+                    <h3 class="players-title">My Recent Bets</h3>
+                    <button id="refresh-bets-btn" class="btn-sm btn-secondary" onclick="loadRecentBets()">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
                 </div>
-                <div class="players-list" id="player-list">
-                    <!-- Players will be populated by JavaScript -->
+                <div class="players-list" id="recent-bets-list">
+                    <!-- Recent bets will be populated by JavaScript -->
+                    <div class="loading-message">Loading recent bets...</div>
                 </div>
             </div>
         </div>
@@ -604,13 +820,26 @@
             }
         });
 
+        // Global WebSocket manager to prevent memory leaks
+        let gameWebSocket = null;
+
         function initializeGame() {
-            // WebSocket connection
+            // Clean up existing connection
+            if (gameWebSocket) {
+                gameWebSocket.destroy();
+            }
+
+            // Create optimized WebSocket connection
             const roomName = "{{ room_name }}";
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const chatSocket = new WebSocket(
-                protocol + '//' + window.location.host + '/ws/game/' + roomName + '/'
-            );
+
+            gameWebSocket = window.createGameWebSocket ?
+                window.createGameWebSocket(roomName, {
+                    open: handleWebSocketOpen,
+                    message: handleWebSocketMessage,
+                    close: handleWebSocketClose,
+                    error: handleWebSocketError
+                }) :
+                createFallbackWebSocket(roomName);
 
             // Game state
             let selectedColor = null;
@@ -618,7 +847,8 @@
                 timeRemaining: 0,
                 balance: 0,
                 bettingClosed: false,
-                currentPhase: 'betting'
+                currentPhase: 'betting',
+                currentRound: null
             };
 
             // DOM elements
@@ -631,76 +861,92 @@
             const placeBetBtn = document.getElementById('place-bet-btn');
             const resultDisplayEl = document.getElementById('result-display');
             const resultLoadingEl = document.getElementById('result-loading');
-            const playerListEl = document.getElementById('player-list');
+            const recentBetsListEl = document.getElementById('recent-bets-list');
             const messagesEl = document.getElementById('messages-container');
 
             // Timer stuck detection variables
             let lastTimerUpdate = Date.now();
             let lastTimerValue = null;
 
-            // WebSocket event handlers
-            chatSocket.onopen = function(e) {
+            // Optimized WebSocket event handlers
+            function handleWebSocketOpen(e) {
                 console.log('WebSocket connected successfully');
                 addMessage('Connected to game server', 'success');
+                clearRecentBets();
 
-                // Reset reconnection attempts on successful connection
-                reconnectAttempts = 0;
+                // Request current game state
+                gameWebSocket.send({ type: 'get_game_state' });
+            }
 
-                // Initialize player list with "no bets" message
-                clearPlayerList();
-
-                // Request current game state to restore state after page refresh
-                chatSocket.send(JSON.stringify({
-                    'type': 'get_game_state'
-                }));
-            };
-
-            chatSocket.onmessage = function(e) {
+            function handleWebSocketMessage(e) {
                 const data = JSON.parse(e.data);
-                handleWebSocketMessage(data);
-
-                // Reset timer stuck detection on any message
+                processWebSocketMessage(data);
                 lastTimerUpdate = Date.now();
-            };
+                updateConnectionHealth(true);
+            }
 
-            let reconnectAttempts = 0;
-            const maxReconnectAttempts = 5;
-
-            chatSocket.onclose = function(e) {
-                console.log('Chat socket closed with code:', e.code);
+            function handleWebSocketClose(e) {
+                console.log('WebSocket closed:', e.code);
+                updateConnectionHealth(false);
 
                 if (e.code === 4001) {
-                    // Authentication failed
-                    addMessage('Authentication failed. Redirecting to login...', 'error');
-                    setTimeout(() => {
-                        window.location.href = '/login/';
-                    }, 2000);
-                    return;
+                    addMessage('Authentication failed. Redirecting...', 'error');
+                    setTimeout(() => window.location.href = '/login/', 2000);
                 }
+            }
 
-                addMessage('Connection lost. Attempting to reconnect...', 'warning');
-
-                if (reconnectAttempts < maxReconnectAttempts) {
-                    const delay = Math.pow(2, reconnectAttempts) * 1000; // Exponential backoff
-                    console.log(`Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
-                    setTimeout(() => {
-                        reconnectAttempts++;
-                        // Reconnect without reloading the page to preserve state
-                        initializeGame();
-                    }, delay);
-                } else {
-                    console.error('Max reconnection attempts reached');
-                    addMessage('Connection lost permanently. Please refresh the page manually.', 'error');
-                }
-            };
-
-            chatSocket.onerror = function(e) {
+            function handleWebSocketError(e) {
                 console.error('WebSocket error:', e);
                 addMessage('Connection error occurred', 'error');
-            };
+            }
 
-            // Handle WebSocket messages
-            function handleWebSocketMessage(data) {
+            // Fallback WebSocket for older browsers
+            function createFallbackWebSocket(roomName) {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const ws = new WebSocket(protocol + '//' + window.location.host + '/ws/game/' + roomName + '/');
+
+                ws.onopen = handleWebSocketOpen;
+                ws.onmessage = handleWebSocketMessage;
+                ws.onclose = handleWebSocketClose;
+                ws.onerror = handleWebSocketError;
+
+                return {
+                    send: (data) => ws.send(typeof data === 'string' ? data : JSON.stringify(data)),
+                    destroy: () => ws.close()
+                };
+            }
+
+
+
+            // Connection health monitoring
+            let connectionHealthIndicator = null;
+            function updateConnectionHealth(isHealthy) {
+                if (!connectionHealthIndicator) {
+                    connectionHealthIndicator = document.createElement('div');
+                    connectionHealthIndicator.id = 'connection-health';
+                    connectionHealthIndicator.style.cssText = `
+                        position: fixed; top: 10px; right: 10px; z-index: 1000;
+                        padding: 5px 10px; border-radius: 5px; font-size: 12px;
+                        transition: all 0.3s ease;
+                    `;
+                    document.body.appendChild(connectionHealthIndicator);
+                }
+
+                if (isHealthy) {
+                    connectionHealthIndicator.textContent = '🟢 Connected';
+                    connectionHealthIndicator.style.backgroundColor = '#d4edda';
+                    connectionHealthIndicator.style.color = '#155724';
+                } else {
+                    connectionHealthIndicator.textContent = '🔴 Disconnected';
+                    connectionHealthIndicator.style.backgroundColor = '#f8d7da';
+                    connectionHealthIndicator.style.color = '#721c24';
+                }
+            }
+
+
+
+            // Process WebSocket messages
+            function processWebSocketMessage(data) {
                 switch(data.type) {
                     case 'game_state':
                         updateGameState(data);
@@ -719,6 +965,15 @@
                         handleRoundEnded(data);
                         break;
                     case 'new_round_started':
+                        console.log('New round started:', data);
+                        // Immediately update game state to prevent stale phase information
+                        gameState.currentPhase = 'betting';
+                        gameState.bettingClosed = false;
+                        gameState.hasPlacedBet = false;
+                        gameState.timeRemaining = data.time_remaining || 40;
+                        if (data.round_id) {
+                            gameState.currentRound = data.round_id;
+                        }
                         handleNewRound();
                         break;
                     case 'player_joined':
@@ -743,6 +998,9 @@
                 gameState.timeRemaining = data.time_remaining;
                 gameState.balance = data.player_balance;
                 gameState.bettingClosed = data.betting_closed;
+                gameState.currentRound = data.round_id;
+
+                console.log('Game state updated, round_id:', data.round_id);
 
                 // Update balance display with zero balance warning
                 balanceEl.textContent = data.player_balance;
@@ -782,26 +1040,33 @@
 
                     // Update place bet button to show bet was placed
                     placeBetBtn.disabled = true;
-                    placeBetBtn.textContent = `Bet Placed: $${data.existing_bet.amount} on ${selectedColor.toUpperCase()}`;
+                    placeBetBtn.textContent = `Bet Placed: ₹${data.existing_bet.amount} on ${selectedColor.toUpperCase()}`;
                     placeBetBtn.style.backgroundColor = '#28a745';
 
                     // Show notification about recovered bet
-                    showNotification(`Bet recovered: $${data.existing_bet.amount} on ${selectedColor.toUpperCase()}`, 'info');
+                    showNotification(`Bet recovered: ₹${data.existing_bet.amount} on ${selectedColor.toUpperCase()}`, 'info');
                 }
 
-                // Handle existing bets from other players
+                // Handle existing bets for color counts
                 if (data.existing_bets && data.existing_bets.length > 0) {
                     console.log('Loading existing bets:', data.existing_bets);
 
-                    // Clear current player list
-                    clearPlayerList();
+                    // Reset color bet counts
+                    ['red', 'green', 'violet'].forEach(color => {
+                        const countElement = document.getElementById(`${color}-count`);
+                        if (countElement) {
+                            countElement.textContent = '0';
+                        }
+                    });
 
-                    // Add all existing bets to the player list
+                    // Update color bet counts from existing bets
                     data.existing_bets.forEach(bet => {
-                        addBetToPlayerList(bet);
                         updateColorBetCount(bet.color, 1);
                     });
                 }
+
+                // Load recent bets for the current user
+                loadRecentBets();
 
                 updateTimer({time_remaining: data.time_remaining, phase: data.betting_closed ? 'result' : 'betting'});
             }
@@ -809,6 +1074,11 @@
             function updateTimer(data) {
                 gameState.currentPhase = data.phase;
                 gameState.timeRemaining = data.time_remaining;
+
+                // Update round_id if provided in timer update
+                if (data.round_id) {
+                    gameState.currentRound = data.round_id;
+                }
 
                 if (data.phase === 'result' || gameState.bettingClosed || data.time_remaining <= 0) {
                     // Hide timer and show loading skeleton during result phase
@@ -835,8 +1105,19 @@
                     const seconds = timeToShow % 60;
                     timerEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
-                    // Re-enable betting interface if not already bet placed
-                    if (!placeBetBtn.textContent.includes('Placed')) {
+                    // Reset betting state if this is a new round (high time remaining)
+                    if (data.phase === 'betting' && data.time_remaining > 35) {
+                        gameState.bettingClosed = false;
+                        gameState.hasPlacedBet = false;
+                        if (placeBetBtn.textContent === 'Betting Closed') {
+                            placeBetBtn.disabled = false;
+                            placeBetBtn.textContent = 'Place Bet';
+                        }
+                    }
+
+                    // Re-enable betting interface if not already bet placed and betting is open
+                    if (!placeBetBtn.textContent.includes('Placed') && !gameState.bettingClosed) {
+                        placeBetBtn.disabled = false;
                         colorBoxes.forEach(box => {
                             box.style.opacity = '1';
                             box.style.cursor = 'pointer';
@@ -866,7 +1147,7 @@
                     const statusIcon = betStatusInfo.querySelector('.status-icon');
 
                     statusIcon.textContent = '✅';
-                    statusText.textContent = `Your bet: $${data.amount} on ${data.color.toUpperCase()}`;
+                    statusText.textContent = `Your bet: ₹${data.amount} on ${data.color.toUpperCase()}`;
                     betStatusInfo.classList.remove('hidden');
 
                     // Disable color selection
@@ -876,49 +1157,106 @@
                     });
                 }
 
-                // Add bet to player list
-                addBetToPlayerList(data);
-
                 // Update color bet counts
                 updateColorBetCount(data.color, 1);
 
-                addMessage(`${data.username} bet $${data.amount} on ${data.color}`, 'bet');
+                // If this is the current user's bet, refresh recent bets
+                if (data.username === username) {
+                    loadRecentBets();
+                }
+
+                addMessage(`${data.username} bet ₹${data.amount} on ${data.color}`, 'bet');
             }
 
-            function addBetToPlayerList(betData) {
-                console.log('Adding bet to player list:', betData);
+            // Load recent bets for the current user
+            async function loadRecentBets() {
+                try {
+                    recentBetsListEl.innerHTML = '<div class="loading-message">Loading recent bets...</div>';
 
-                // Remove "no bets" message if it exists
-                removeNoBetsMessage();
+                    const response = await fetch('/api/my-recent-bets/', {
+                        method: 'GET',
+                        credentials: 'same-origin',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                        }
+                    });
 
-                // Check if player already exists in the list
-                let playerItem = document.querySelector(`[data-player="${betData.username}"]`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
 
-                if (!playerItem) {
-                    // Create new player item
-                    playerItem = document.createElement('div');
-                    playerItem.className = 'player-item';
-                    playerItem.setAttribute('data-player', betData.username);
+                    const data = await response.json();
 
-                    playerItem.innerHTML = `
-                        <div class="player-info">
-                            <div class="player-name">${betData.username}</div>
-                            <div class="player-bet">$${betData.amount} on ${betData.color.toUpperCase()}</div>
+                    if (data.success) {
+                        displayRecentBets(data.bets);
+                    } else {
+                        throw new Error(data.error || 'Failed to load recent bets');
+                    }
+                } catch (error) {
+                    console.error('Error loading recent bets:', error);
+                    recentBetsListEl.innerHTML = '<div class="no-bets-message">Failed to load recent bets</div>';
+                }
+            }
+
+            function displayRecentBets(bets) {
+                if (!bets || bets.length === 0) {
+                    recentBetsListEl.innerHTML = '<div class="no-bets-message">No recent bets found</div>';
+                    return;
+                }
+
+                recentBetsListEl.innerHTML = '';
+
+                bets.forEach(bet => {
+                    const betItem = document.createElement('div');
+                    betItem.className = 'bet-item';
+
+                    const colorDot = bet.color ? `<span class="color-dot ${bet.color}"></span>` : '';
+                    const betTarget = bet.color ? `${colorDot}${bet.color.toUpperCase()}` : `Number ${bet.number}`;
+
+                    let resultText = 'PENDING';
+                    let resultClass = 'pending';
+
+                    if (bet.round_ended && bet.round_result) {
+                        if (bet.correct) {
+                            resultText = 'WIN';
+                            resultClass = 'win';
+                        } else {
+                            resultText = 'LOSS';
+                            resultClass = 'loss';
+                        }
+                    }
+
+                    const betDate = new Date(bet.created_at);
+                    const timeAgo = getTimeAgo(betDate);
+
+                    betItem.innerHTML = `
+                        <div class="bet-info">
+                            <div class="bet-round">Round ${bet.round_id || 'N/A'}</div>
+                            <div class="bet-details">
+                                ${betTarget} • ₹${bet.amount} • ${timeAgo}
+                            </div>
                         </div>
-                        <div class="player-status">
-                            <span class="bet-amount">$${betData.amount}</span>
+                        <div class="bet-status">
+                            <span class="bet-amount">₹${bet.amount}</span>
+                            <span class="bet-result ${resultClass}">${resultText}</span>
                         </div>
                     `;
 
-                    playerListEl.appendChild(playerItem);
-                } else {
-                    // Update existing player item
-                    const playerBet = playerItem.querySelector('.player-bet');
-                    const betAmount = playerItem.querySelector('.bet-amount');
+                    recentBetsListEl.appendChild(betItem);
+                });
+            }
 
-                    playerBet.textContent = `$${betData.amount} on ${betData.color.toUpperCase()}`;
-                    betAmount.textContent = `$${betData.amount}`;
-                }
+            function getTimeAgo(date) {
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+
+                if (diffMins < 1) return 'Just now';
+                if (diffMins < 60) return `${diffMins}m ago`;
+                if (diffHours < 24) return `${diffHours}h ago`;
+                return `${diffDays}d ago`;
             }
 
             function updateColorBetCount(color, increment) {
@@ -929,23 +1267,16 @@
                 }
             }
 
-            function clearPlayerList() {
-                playerListEl.innerHTML = '<div class="no-bets-message">No bets placed yet</div>';
+            function clearRecentBets() {
+                recentBetsListEl.innerHTML = '<div class="no-bets-message">No recent bets</div>';
 
                 // Reset color bet counts
-                ['red', 'green', 'violet', 'blue'].forEach(color => {
+                ['red', 'green', 'violet'].forEach(color => {
                     const countElement = document.getElementById(`${color}-count`);
                     if (countElement) {
                         countElement.textContent = '0';
                     }
                 });
-            }
-
-            function removeNoBetsMessage() {
-                const noBetsMessage = playerListEl.querySelector('.no-bets-message');
-                if (noBetsMessage) {
-                    noBetsMessage.remove();
-                }
             }
 
             function handleBettingClosed() {
@@ -986,7 +1317,7 @@
                 if (userResult) {
                     if (userResult.won) {
                         resultDisplayEl.classList.add('win');
-                        resultDisplayEl.innerHTML += `<div style="margin-top: 10px; font-size: 1.3rem;">🎉 You Won $${userResult.payout}!</div>`;
+                        resultDisplayEl.innerHTML += `<div style="margin-top: 10px; font-size: 1.3rem;">🎉 You Won ₹${userResult.payout}!</div>`;
                     } else {
                         resultDisplayEl.classList.add('lose');
                         resultDisplayEl.innerHTML += `<div style="margin-top: 10px; font-size: 1.1rem;">😔 You Lost!</div>`;
@@ -1004,12 +1335,16 @@
                     case 'red': return '#dc2626';
                     case 'green': return '#059669';
                     case 'violet': return '#7c3aed';
-                    case 'blue': return '#2563eb';
                     default: return '#333';
                 }
             }
 
             function handleNewRound() {
+                // Reset game state for new round
+                gameState.bettingClosed = false;
+                gameState.currentPhase = 'betting';
+                gameState.hasPlacedBet = false;
+
                 resultDisplayEl.classList.add('hidden');
                 resultLoadingEl.classList.add('hidden');
                 timerEl.style.display = 'block'; // Show timer again for new round
@@ -1028,10 +1363,20 @@
                 const betStatusInfo = document.getElementById('bet-status-info');
                 betStatusInfo.classList.add('hidden');
 
-                // Clear player list and bet counts for new round
-                clearPlayerList();
+                // Reset bet counts for new round
+                ['red', 'green', 'violet'].forEach(color => {
+                    const countElement = document.getElementById(`${color}-count`);
+                    if (countElement) {
+                        countElement.textContent = '0';
+                    }
+                });
 
-                addMessage('New round started!', 'result');
+                // Load recent bets to refresh the list
+                loadRecentBets();
+
+                addMessage('New round started! Place your bets now!', 'result');
+
+                console.log('New round started - betting state reset');
             }
 
             function handleError(message) {
@@ -1111,11 +1456,40 @@
                     return;
                 }
 
-                chatSocket.send(JSON.stringify({
+                const betData = {
                     'type': 'place_bet',
                     'color': selectedColor,
-                    'amount': amount
-                }));
+                    'amount': amount,
+                    'round_id': gameState.currentRound || 'unknown',
+                    'timestamp': Date.now() / 1000  // Add timestamp for replay attack prevention
+                };
+
+                console.log('Current gameState:', gameState);
+                console.log('Sending bet with data:', betData);
+
+                if (!gameState.currentRound) {
+                    console.error('No round_id available! gameState:', gameState);
+                    showNotification('Game not ready, please wait...', 'warning');
+                    return;
+                }
+
+                // Check if betting is still allowed (prevent stale state issues)
+                if (gameState.bettingClosed || gameState.currentPhase === 'ended') {
+                    console.warn('Betting appears to be closed based on local state. Phase:', gameState.currentPhase, 'Betting closed:', gameState.bettingClosed);
+                    showNotification('Betting period has ended. Please wait for the next round.', 'warning');
+                    return;
+                }
+
+                // Validate color on frontend
+                const validColors = ['red', 'green', 'violet'];
+                if (!validColors.includes(selectedColor)) {
+                    console.error('Invalid color selected:', selectedColor);
+                    showNotification(`Invalid color "${selectedColor}". Please select red, green, or violet.`, 'error');
+                    return;
+                }
+
+                console.log('Placing bet - Current phase:', gameState.currentPhase, 'Time remaining:', gameState.timeRemaining);
+                gameWebSocket.send(betData);
             });
 
             // Notification System
@@ -1179,8 +1553,32 @@
 
             // Initialize
             addMessage(`Welcome ${username}! Connecting to game...`);
+
+            // Load recent bets on page load
+            loadRecentBets();
+
+            // Cleanup on page unload to prevent memory leaks
+            window.addEventListener('beforeunload', () => {
+                if (gameWebSocket) {
+                    gameWebSocket.destroy();
+                }
+            });
+
+            window.addEventListener('pagehide', () => {
+                if (gameWebSocket) {
+                    gameWebSocket.destroy();
+                }
+            });
         } // End of initializeGame function
     </script>
+
+    <!-- Optimized WebSocket Configuration -->
+    {% if debug %}
+    <script src="{% static 'js/websocket-config.js' %}"></script>
+    {% else %}
+    <script src="{% static 'js/websocket-config.min.js' %}"></script>
+    {% endif %}
+    <script src="{% static 'js/websocket-manager.js' %}"></script>
 
     <!-- Notification Container -->
     <div class="notification-container" id="notificationContainer"></div>

@@ -48,19 +48,34 @@ class ServerAuthoritativeTimer:
         
         # Background task for timer management
         self.timer_task: Optional[asyncio.Task] = None
-        self.start_timer_management()
+        # Don't start timer management during import - will be started when needed
+        # self.start_timer_management()
     
     def start_timer_management(self):
         """Start the background timer management task"""
         if not self.timer_task or self.timer_task.done():
             self.timer_task = asyncio.create_task(self._timer_management_loop())
     
+    def ensure_timer_management_started(self):
+        """Ensure timer management is running"""
+        try:
+            if not self.timer_task or self.timer_task.done():
+                self.timer_task = asyncio.create_task(self._timer_management_loop())
+                logger.info("Started timer management task")
+        except RuntimeError as e:
+            if "no running event loop" in str(e):
+                logger.warning("No event loop available for timer management")
+            else:
+                raise
+
     async def start_round_timer(self, room_name: str, game_round) -> bool:
         """
         Start a new round timer with server-authoritative timing
         Returns True if timer started successfully
         """
         try:
+            # Ensure timer management is running
+            self.ensure_timer_management_started()
             current_time = time.time()
             
             # Calculate actual elapsed time from database
@@ -139,18 +154,40 @@ class ServerAuthoritativeTimer:
         Validate that a bet is placed within the allowed time window
         Returns (is_valid, reason)
         """
+        # Check if timer state exists for this room
+        timer_state = self.active_timers.get(room_name)
+        if not timer_state:
+            # No timer state - this might be during round transition
+            # Allow betting with a grace period for new rounds
+            logger.warning(f"No timer state found for room {room_name} during bet validation - allowing bet during transition")
+            return True, "Bet allowed during round transition"
+
         if not self.is_betting_allowed(room_name):
             time_remaining, phase = self.get_accurate_time_remaining(room_name)
+
+            # Special case: If phase is 'ended' but time_remaining is 0,
+            # this might be a stale timer state during round transition
+            if phase == 'ended' and time_remaining == 0.0:
+                # Check if this is a very recent round end (within 3 seconds)
+                current_time = time.time()
+                elapsed_time = current_time - timer_state.start_time
+
+                # If the round just ended (within 3 seconds), allow some grace period
+                # This handles the case where frontend hasn't received new round notification yet
+                if elapsed_time <= (timer_state.duration + 3.0):
+                    logger.info(f"Allowing bet during round transition grace period for room {room_name}")
+                    return True, "Bet allowed during round transition grace period"
+
             return False, f"Betting not allowed. Phase: {phase}, Time remaining: {time_remaining:.1f}s"
-        
+
         # Additional validation against client timestamp if provided
         if client_timestamp:
             server_time = time.time()
             time_diff = abs(server_time - client_timestamp)
-            
+
             if time_diff > 5.0:  # 5 second tolerance
                 return False, f"Client time too far from server time (diff: {time_diff:.1f}s)"
-        
+
         return True, "Bet timing valid"
     
     async def force_end_round(self, room_name: str, reason: str = "Manual"):

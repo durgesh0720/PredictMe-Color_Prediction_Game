@@ -1,0 +1,285 @@
+/* Simple Design Overrides - Apply to all pages */
+/* This file ensures all pages have a clean, simple design */
+
+/* Remove all fancy animations and effects */
+*,
+*::before,
+*::after {
+    animation: none !important;
+    transition: all 0.2s ease !important;
+}
+
+/* Simplified buttons */
+.btn,
+button,
+input[type="submit"],
+input[type="button"] {
+    background: var(--primary-color) !important;
+    border-radius: var(--border-radius-md) !important;
+    box-shadow: none !important;
+    transform: none !important;
+    border: none !important;
+    transition: background-color 0.2s ease !important;
+}
+
+.btn:hover,
+button:hover,
+input[type="submit"]:hover,
+input[type="button"]:hover {
+    background: var(--primary-hover) !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.btn:active,
+button:active,
+input[type="submit"]:active,
+input[type="button"]:active {
+    background: var(--primary-dark) !important;
+    transform: none !important;
+}
+
+/* Simplified cards */
+.card,
+.betting-card,
+.players-card,
+.wallet-card,
+.profile-card {
+    border-radius: var(--border-radius-lg) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    transform: none !important;
+    transition: none !important;
+}
+
+.card:hover,
+.betting-card:hover,
+.players-card:hover,
+.wallet-card:hover,
+.profile-card:hover {
+    transform: none !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Simplified color boxes */
+.color-box {
+    border-radius: var(--border-radius-lg) !important;
+    transition: all 0.2s ease !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.color-box::before,
+.color-box::after {
+    display: none !important;
+}
+
+.color-box:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.color-box:active {
+    transform: translateY(0) !important;
+}
+
+.color-box.selected {
+    transform: none !important;
+    border: 2px solid white !important;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Simplified form inputs */
+input,
+select,
+textarea,
+.form-control {
+    border-radius: var(--border-radius-md) !important;
+    border: 1px solid var(--border-color) !important;
+    transition: border-color 0.2s ease !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+.form-control:focus {
+    border-color: var(--primary-color) !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Simplified navigation */
+.nav,
+.navbar,
+.navigation {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    border-radius: 0 !important;
+}
+
+.nav-link,
+.navbar-link {
+    transition: color 0.2s ease !important;
+    transform: none !important;
+}
+
+.nav-link:hover,
+.navbar-link:hover {
+    transform: none !important;
+}
+
+/* Simplified modals and popups */
+.modal,
+.popup,
+.dialog {
+    border-radius: var(--border-radius-lg) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Simplified tables */
+.table,
+table {
+    border-radius: var(--border-radius-md) !important;
+    overflow: hidden;
+}
+
+.table th,
+.table td,
+table th,
+table td {
+    border: 1px solid var(--border-color) !important;
+    transition: none !important;
+}
+
+.table tr:hover,
+table tr:hover {
+    background: var(--background-secondary) !important;
+    transform: none !important;
+}
+
+/* Simplified alerts and notifications */
+.alert,
+.notification,
+.toast {
+    border-radius: var(--border-radius-md) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    transform: none !important;
+}
+
+/* Simplified loading states */
+.loading,
+.spinner,
+.loader {
+    animation: spin 1s linear infinite !important;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Remove fancy gradients */
+.gradient,
+.bg-gradient {
+    background: var(--primary-color) !important;
+}
+
+/* Simplified shadows */
+.shadow,
+.shadow-sm,
+.shadow-md,
+.shadow-lg,
+.shadow-xl {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Simplified borders */
+.border-rounded,
+.rounded,
+.rounded-lg,
+.rounded-xl {
+    border-radius: var(--border-radius-lg) !important;
+}
+
+.rounded-md {
+    border-radius: var(--border-radius-md) !important;
+}
+
+.rounded-sm {
+    border-radius: var(--border-radius-sm) !important;
+}
+
+/* Remove transforms on all elements */
+.transform,
+.scale,
+.rotate,
+.translate {
+    transform: none !important;
+}
+
+/* Simplified hover effects */
+.hover-effect:hover,
+.hover-scale:hover,
+.hover-lift:hover {
+    transform: none !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Ensure consistent spacing */
+.container,
+.wrapper,
+.content {
+    padding: var(--space-4) !important;
+}
+
+/* Simplified responsive design */
+@media (max-width: 768px) {
+    .card,
+    .betting-card,
+    .players-card {
+        margin: var(--space-2) !important;
+        padding: var(--space-4) !important;
+    }
+    
+    .btn,
+    button {
+        padding: var(--space-3) var(--space-4) !important;
+        font-size: var(--text-base) !important;
+    }
+}
+
+/* Print styles - keep simple */
+@media print {
+    .card,
+    .betting-card,
+    .players-card {
+        box-shadow: none !important;
+        border: 1px solid #ccc !important;
+    }
+    
+    .color-box {
+        border: 2px solid #000 !important;
+        color: #000 !important;
+    }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .btn,
+    button,
+    .color-box,
+    .card {
+        border: 2px solid currentColor !important;
+    }
+}

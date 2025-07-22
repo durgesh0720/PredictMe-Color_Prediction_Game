@@ -27,7 +27,7 @@
 - User is created and automatically logged in
 - Redirected to profile page
 - Welcome message displayed
-- Starting balance of $1000
+- Starting balance of ₹1000
 
 ### 2. User Login
 **Steps:**

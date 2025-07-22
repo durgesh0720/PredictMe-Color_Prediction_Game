@@ -58,12 +58,12 @@ def test_integrated_notifications():
     # Test deposit
     print("📥 Testing deposit...")
     test_user.credit_wallet(500, 'deposit', 'Test deposit via payment gateway')
-    print(f"✅ Deposited $500, new balance: ${test_user.balance}")
+    print(f"✅ Deposited ₹500, new balance: ${test_user.balance}")
     
     # Test withdrawal
     print("📤 Testing withdrawal...")
     test_user.debit_wallet(200, 'withdrawal', 'Test withdrawal to bank account')
-    print(f"✅ Withdrew $200, new balance: ${test_user.balance}")
+    print(f"✅ Withdrew ₹200, new balance: ${test_user.balance}")
     
     # Test 2: Game Round with Betting and Notifications
     print("\n🎮 Test 2: Complete Game Round")

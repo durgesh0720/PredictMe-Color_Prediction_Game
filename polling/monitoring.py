@@ -82,7 +82,8 @@ class MonitoringManager:
         self.metrics_task: Optional[asyncio.Task] = None
         self.cleanup_task: Optional[asyncio.Task] = None
         
-        self.start_monitoring()
+        # Don't start monitoring during import - will be started when needed
+        # self.start_monitoring()
     
     def start_monitoring(self):
         """Start all monitoring tasks"""

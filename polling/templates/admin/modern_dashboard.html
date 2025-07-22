@@ -557,15 +557,27 @@
         };
 
         dashboardSocket.onclose = function(event) {
-            console.log('Dashboard WebSocket disconnected');
+            console.log('Dashboard WebSocket disconnected, code:', event.code);
             updateConnectionStatus(false);
 
-            // Attempt to reconnect
+            // Don't reconnect if it's an authentication error
+            if (event.code === 4001) {
+                console.log('Authentication failed, redirecting to login');
+                window.location.href = '/admin/login/';
+                return;
+            }
+
+            // Attempt to reconnect with exponential backoff
             if (reconnectAttempts < maxReconnectAttempts) {
+                const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000); // Max 30 seconds
                 setTimeout(() => {
                     reconnectAttempts++;
+                    console.log(`Reconnecting admin WebSocket (attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
                     initDashboardWebSocket();
-                }, 3000);
+                }, delay);
+            } else {
+                console.error('Max admin WebSocket reconnection attempts reached');
+                updateConnectionStatus(false);
             }
         };
 

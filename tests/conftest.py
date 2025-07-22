@@ -3,6 +3,15 @@ Test configuration and fixtures for the Color Prediction Game test suite.
 This file contains test utilities and simple factories used across all test modules.
 """
 
+import os
+import django
+from django.conf import settings
+
+# Configure Django settings for tests
+if not settings.configured:
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tests.misc.test_settings')
+    django.setup()
+
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.utils import timezone

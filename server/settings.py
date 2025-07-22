@@ -32,6 +32,21 @@ ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS', 'localhost,
 csrf_origins = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:8000,http://127.0.0.1:8000')
 CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_origins.split(',') if origin.strip()]
 
+# Redis Configuration for Production Scalability
+REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+
+# Production Gaming Configuration
+GAMING_CONFIG = {
+    'MAX_CONCURRENT_PLAYERS_PER_ROOM': 1000,
+    'MAX_ROOMS': 10,
+    'ROUND_DURATION_SECONDS': 50,
+    'BETTING_PHASE_SECONDS': 40,
+    'RESULT_PHASE_SECONDS': 10,
+    'AUTO_CLEANUP_EMPTY_ROOMS': True,
+    'ENABLE_HORIZONTAL_SCALING': True,
+    'REDIS_BACKED_STATE': True
+}
+
 # WebSocket Configuration
 WS_ALLOWED_ORIGINS = []
 for host in ALLOWED_HOSTS:
@@ -283,10 +298,19 @@ RAZORPAY_WEBHOOK_SECRET = os.getenv('RAZORPAY_WEBHOOK_SECRET', '')
 RAZORPAY_ACCOUNT_NUMBER = os.getenv('RAZORPAY_ACCOUNT_NUMBER', '')  # Your business account number for payouts
 
 # Payment Limits
-MIN_DEPOSIT_AMOUNT = int(os.getenv('MIN_DEPOSIT_AMOUNT', 10))  # $10 minimum deposit
-MAX_DEPOSIT_AMOUNT = int(os.getenv('MAX_DEPOSIT_AMOUNT', 10000))  # $10,000 maximum deposit
-MIN_WITHDRAWAL_AMOUNT = int(os.getenv('MIN_WITHDRAWAL_AMOUNT', 20))  # $20 minimum withdrawal
-MAX_WITHDRAWAL_AMOUNT = int(os.getenv('MAX_WITHDRAWAL_AMOUNT', 5000))  # $5,000 maximum withdrawal
+MIN_DEPOSIT_AMOUNT = int(os.getenv('MIN_DEPOSIT_AMOUNT', 10))  # ₹10 minimum deposit
+MAX_DEPOSIT_AMOUNT = int(os.getenv('MAX_DEPOSIT_AMOUNT', 10000))  # ₹10,000 maximum deposit
+MIN_WITHDRAWAL_AMOUNT = int(os.getenv('MIN_WITHDRAWAL_AMOUNT', 20))  # ₹20 minimum withdrawal
+MAX_WITHDRAWAL_AMOUNT = int(os.getenv('MAX_WITHDRAWAL_AMOUNT', 5000))  # ₹5,000 maximum withdrawal
+
+# Responsible Gambling Configuration
+RG_DAILY_LOSS_LIMIT = int(os.getenv('RG_DAILY_LOSS_LIMIT', 10000))  # Default ₹100
+RG_DAILY_BET_LIMIT = int(os.getenv('RG_DAILY_BET_LIMIT', 50000))   # Default ₹500
+RG_SESSION_LOSS_LIMIT = int(os.getenv('RG_SESSION_LOSS_LIMIT', 5000)) # Default ₹50
+RG_SESSION_TIME_LIMIT = int(os.getenv('RG_SESSION_TIME_LIMIT', 7200)) # Default 2 hours in seconds
+RG_MAX_BET_AMOUNT = int(os.getenv('RG_MAX_BET_AMOUNT', 2000))     # Default ₹20 per bet
+RG_MIN_BET_AMOUNT = int(os.getenv('RG_MIN_BET_AMOUNT', 100))      # Default ₹1 per bet
+RG_COOLING_OFF_PERIOD = int(os.getenv('RG_COOLING_OFF_PERIOD', 86400)) # 24 hours in seconds
 
 # Security Settings for Production - Environment Variable Driven
 # HTTPS Settings

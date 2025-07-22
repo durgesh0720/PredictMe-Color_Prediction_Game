@@ -323,7 +323,7 @@ def send_low_balance_notification(player):
     Send low balance notification if balance is below threshold
     """
     try:
-        LOW_BALANCE_THRESHOLD = 100  # $100 threshold
+        LOW_BALANCE_THRESHOLD = 100  # ₹100 threshold
         
         if player.balance <= LOW_BALANCE_THRESHOLD:
             # Check if we've already sent a low balance notification recently
@@ -373,7 +373,7 @@ def send_big_win_notification(player, amount, game_round):
     Send notification for big wins
     """
     try:
-        BIG_WIN_THRESHOLD = 500  # $500 threshold for big wins
+        BIG_WIN_THRESHOLD = 500  # ₹500 threshold for big wins
         
         if amount >= BIG_WIN_THRESHOLD:
             notify_game_result(

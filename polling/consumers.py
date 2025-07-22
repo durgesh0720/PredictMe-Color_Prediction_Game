@@ -1,15 +1,12 @@
 # consumers.py
 import json
-import secrets
 import asyncio
 import logging
-import hashlib
 import time
 from .models import Player, GameRound, Bet, AdminColorSelection
-from .wallet_utils import place_bet_with_wallet, process_bet_result_with_master_wallet, validate_bet_amount
-from .notification_service import notify_game_result, notify_wallet_transaction
+from .wallet_utils import place_bet_with_wallet, process_bet_result_with_master_wallet
+from .notification_service import notify_game_result
 from .secure_random import secure_random
-from .websocket_reliability import reliable_ws_manager
 from .timer_sync import server_timer
 from .responsible_gambling import responsible_gambling
 from .monitoring import monitoring
@@ -20,9 +17,47 @@ from django.db import transaction
 
 logger = logging.getLogger(__name__)
 
-# Global game state management
-game_rooms = {}  # {room_name: {'round': GameRound, 'timer_task': Task, 'players': set(), 'bets': {}, 'lock': asyncio.Lock()}}
-game_rooms_lock = asyncio.Lock()  # Global lock for game_rooms access
+# Global game state management with thread-safe access
+class GameRoomManager:
+    """Thread-safe game room manager to prevent race conditions"""
+
+    def __init__(self):
+        self._rooms = {}
+        self._lock = asyncio.Lock()
+
+    async def get_room(self, room_name):
+        """Get room data with lock protection"""
+        async with self._lock:
+            return self._rooms.get(room_name)
+
+    async def create_room(self, room_name, room_data):
+        """Create room with lock protection"""
+        async with self._lock:
+            if room_name not in self._rooms:
+                self._rooms[room_name] = room_data
+                return True
+            return False
+
+    async def update_room(self, room_name, update_func):
+        """Update room data atomically"""
+        async with self._lock:
+            if room_name in self._rooms:
+                update_func(self._rooms[room_name])
+                return True
+            return False
+
+    async def remove_room(self, room_name):
+        """Remove room with lock protection"""
+        async with self._lock:
+            return self._rooms.pop(room_name, None)
+
+    async def room_exists(self, room_name):
+        """Check if room exists"""
+        async with self._lock:
+            return room_name in self._rooms
+
+# Use thread-safe game room manager
+game_room_manager = GameRoomManager()
 ROUND_DURATION = 50  # 50 seconds total as per requirements
 BETTING_DURATION = 40  # 40 seconds for betting, 10 seconds for results/admin selection
 HEARTBEAT_INTERVAL = 2  # Send heartbeat every 2 seconds
@@ -31,6 +66,7 @@ class GameConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = f"game_{self.room_name}"
+        self.client_ip = self._get_client_ip()
 
         # Get user information from session
         session = self.scope.get('session', {})
@@ -62,16 +98,22 @@ class GameConsumer(AsyncWebsocketConsumer):
             await self.close(code=4001)  # User not found or inactive
             return
 
-        # Initialize room if it doesn't exist with proper locking
-        async with game_rooms_lock:
-            if self.room_name not in game_rooms:
-                await self.initialize_room()
+        # Initialize room if it doesn't exist with thread-safe access
+        room_data = await game_room_manager.get_room(self.room_name)
+        if room_data is None:
+            await self.initialize_room()
+            room_data = await game_room_manager.get_room(self.room_name)
 
-            # Add player to room
-            game_rooms[self.room_name]['players'].add(self.username)
+        # Add player to room safely
+        await game_room_manager.update_room(self.room_name,
+            lambda room: room['players'].add(self.username))
 
         # Join room group
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+
+        # Track active connection
+        await self._track_connection_start()
+
         await self.accept()
         logger.info(f"WebSocket connected: user={self.username}, room={self.room_name}")
 
@@ -81,32 +123,67 @@ class GameConsumer(AsyncWebsocketConsumer):
         # Send current game state to the new player
         await self.send_game_state()
 
+        # Start heartbeat monitoring
+        self._heartbeat_task = asyncio.create_task(self._heartbeat_monitor())
+        self._last_heartbeat = time.time()
+
         # Notify other players
+        # Get player count safely
+        room_data = await game_room_manager.get_room(self.room_name)
+        player_count = len(room_data['players']) if room_data else 1
+
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 'type': 'player_joined',
                 'username': self.username,
-                'player_count': len(game_rooms[self.room_name]['players'])
+                'player_count': player_count
             }
         )
 
     async def disconnect(self, close_code):
-        logger.info(f"WebSocket disconnected: user={getattr(self, 'username', 'Unknown')}, room={self.room_name}, code={close_code}")
+        username = getattr(self, 'username', 'Unknown')
+        logger.info(f"WebSocket disconnected: user={username}, room={self.room_name}, code={close_code}")
 
         # Record WebSocket disconnection for monitoring
         monitoring.record_websocket_event('disconnect')
 
-        # Remove player from room with proper locking
-        async with game_rooms_lock:
-            if self.room_name in game_rooms and hasattr(self, 'username'):
-                game_rooms[self.room_name]['players'].discard(self.username)
+        # Track connection end
+        await self._track_connection_end()
 
-                # Clean up empty game rooms to prevent memory leaks
-                if len(game_rooms[self.room_name]['players']) == 0:
+        # Comprehensive cleanup
+        try:
+            # 1. Cancel any pending reliable messages
+            from .websocket_reliability import reliable_ws_manager
+            from .websocket_security import rate_limiter
+
+            # Clean up rate limiting data
+            connection_id = f"{username}_{self.room_name}"
+            rate_limiter.cleanup_connection(connection_id)
+
+            # 2. Cancel any running tasks for this connection
+            if hasattr(self, '_heartbeat_task') and self._heartbeat_task:
+                self._heartbeat_task.cancel()
+                logger.debug(f"Cancelled heartbeat task for {username}")
+
+            # 3. Clean up any connection-specific data
+            logger.debug(f"Cleaning up messages for disconnected user: {username}")
+
+        except Exception as e:
+            logger.warning(f"Error during disconnect cleanup: {e}")
+
+        # Remove player from room with thread-safe access
+        if hasattr(self, 'username'):
+            room_data = await game_room_manager.get_room(self.room_name)
+            if room_data:
+                await game_room_manager.update_room(self.room_name,
+                    lambda room: room['players'].discard(self.username))
+
+                # Check if room is now empty
+                updated_room = await game_room_manager.get_room(self.room_name)
+                if updated_room and len(updated_room['players']) == 0:
                     # Get room data before cleanup
-                    room_data = game_rooms[self.room_name]
-                    game_round = room_data['round']
+                    game_round = updated_room['round']
 
                     # Check if round has expired and needs to be ended
                     time_elapsed = (timezone.now() - game_round.start_time).total_seconds()
@@ -130,11 +207,11 @@ class GameConsumer(AsyncWebsocketConsumer):
                                 logger.error(f"Fallback round ending failed: {fallback_error}")
                     else:
                         # Cancel timer task if exists (for active rounds)
-                        if room_data.get('timer_task'):
-                            room_data['timer_task'].cancel()
+                        if updated_room.get('timer_task'):
+                            updated_room['timer_task'].cancel()
 
                     # Remove empty room
-                    del game_rooms[self.room_name]
+                    await game_room_manager.remove_room(self.room_name)
                     logger.info(f"Cleaned up empty game room: {self.room_name}")
                 else:
                     # Notify other players
@@ -143,21 +220,76 @@ class GameConsumer(AsyncWebsocketConsumer):
                         {
                             'type': 'player_left',
                             'username': self.username,
-                            'player_count': len(game_rooms[self.room_name]['players'])
+                            'player_count': len(updated_room['players'])
                         }
                     )
 
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
+    async def _heartbeat_monitor(self):
+        """Monitor connection health with heartbeat"""
+        try:
+            while True:
+                await asyncio.sleep(60)  # Check every 60 seconds (less frequent)
+
+                current_time = time.time()
+                if current_time - self._last_heartbeat > 120:  # 120 second timeout (more lenient)
+                    logger.warning(f"Heartbeat timeout for user {getattr(self, 'username', 'Unknown')}")
+                    await self.close(code=4008)  # Timeout
+                    break
+
+                # Send ping to client
+                await self.send(text_data=json.dumps({
+                    'type': 'ping',
+                    'timestamp': current_time
+                }))
+
+        except asyncio.CancelledError:
+            logger.debug(f"Heartbeat monitor cancelled for {getattr(self, 'username', 'Unknown')}")
+        except Exception as e:
+            logger.error(f"Heartbeat monitor error: {e}")
+
     async def receive(self, text_data):
         try:
+            # Import security utilities
+            from .websocket_security import rate_limiter, validator
+
+            # Check message size
+            if not validator.validate_message_size(text_data.encode('utf-8')):
+                await self.close(code=4009)  # Message too large
+                return
+
+            # Check rate limiting
+            connection_id = f"{getattr(self, 'username', 'Unknown')}_{self.room_name}"
+            if not rate_limiter.check_message_rate(connection_id):
+                await self.close(code=4010)  # Rate limit exceeded
+                return
+
             data = json.loads(text_data)
+
+            # Validate message structure
+            is_valid, error_msg = validator.validate_json_message(data)
+            if not is_valid:
+                logger.warning(f"Invalid message from {getattr(self, 'username', 'Unknown')}: {error_msg}")
+                await self.send(text_data=json.dumps({
+                    'type': 'error',
+                    'message': f'Invalid message: {error_msg}'
+                }))
+                return
+
             message_type = data.get('type')
+
+            # Update heartbeat on any message
+            if hasattr(self, '_last_heartbeat'):
+                self._last_heartbeat = time.time()
 
             if message_type == 'place_bet':
                 await self.handle_bet(data)
             elif message_type == 'get_game_state':
                 await self.send_game_state()
+            elif message_type == 'pong':
+                # Handle pong response
+                self._last_heartbeat = time.time()
             elif message_type == 'message_ack':
                 # Handle message acknowledgment
                 message_id = data.get('message_id')
@@ -177,13 +309,24 @@ class GameConsumer(AsyncWebsocketConsumer):
                 'message': 'Invalid JSON format'
             }))
         except Exception as e:
-            logger.error(f"Unexpected error in receive from user {self.username}: {e}")
+            # Comprehensive error logging with context
+            logger.exception(f"Unexpected error in receive from user {self.username}: {e}", extra={
+                'user': getattr(self, 'username', 'Unknown'),
+                'room': self.room_name,
+                'message_data': str(data)[:200] if 'data' in locals() else 'N/A',
+                'error_type': type(e).__name__
+            })
+
+            # Send user-friendly error message
             await self.send(text_data=json.dumps({
                 'type': 'error',
-                'message': 'An unexpected error occurred'
+                'message': 'An unexpected error occurred',
+                'error_code': 'RECEIVE_ERROR'
             }))
 
     async def handle_bet(self, data):
+        """Handle bet placement with comprehensive validation and security"""
+        # Get room data with thread-safe access
         bet_type = data.get('bet_type', 'color')
         color = data.get('color')
         number = data.get('number')
@@ -202,7 +345,73 @@ class GameConsumer(AsyncWebsocketConsumer):
         if amount <= 0 or amount > 10000:
             await self.send(text_data=json.dumps({
                 'type': 'error',
-                'message': 'Bet amount must be between 1 and 10000'
+                'message': 'Bet amount must be between ₹0.01 and ₹100.00'
+            }))
+            return
+
+        # Check if player already has a bet for this round
+        room_data = await game_room_manager.get_room(self.room_name)
+        if not room_data:
+            await self.send(text_data=json.dumps({
+                'type': 'error',
+                'message': 'Game room not found'
+            }))
+            return
+
+        current_round = room_data.get('round')
+        if not current_round:
+            await self.send(text_data=json.dumps({
+                'type': 'error',
+            'message': 'No active round'
+            }))
+            return
+
+        # Check if round is still accepting bets (prevent late bets)
+        if current_round:
+            time_elapsed = (timezone.now() - current_round.start_time).total_seconds()
+            if time_elapsed >= 40:  # Betting closes at 40 seconds
+                await self.send(text_data=json.dumps({
+                    'type': 'error',
+                    'message': 'Betting period has ended'
+                }))
+                return
+
+        # Responsible gambling validation
+        try:
+            from .responsible_gambling import responsible_gambling_manager
+
+            # Validate bet with responsible gambling checks
+            is_valid, error_message = await responsible_gambling_manager.validate_bet(
+                player_id=str(self.user_id),
+                bet_amount=amount,
+                    timestamp=data.get('timestamp')
+            )
+
+            if not is_valid:
+                await self.send(text_data=json.dumps({
+                    'type': 'error',
+                    'message': error_message,
+                    'error_code': 'RESPONSIBLE_GAMBLING'
+                }))
+                return
+
+        except Exception as e:
+            logger.error(f"Error in responsible gambling validation: {e}")
+            # Don't block bet on validation error, but log it
+
+        # Check for duplicate bets (prevent multiple bets per round)
+        existing_bet = await database_sync_to_async(
+            lambda: Bet.objects.filter(
+                player_id=self.user_id,
+                round=current_round
+            ).exists()
+        )()
+
+        if existing_bet:
+            await self.send(text_data=json.dumps({
+                'type': 'error',
+                'message': 'You have already placed a bet for this round',
+                'error_code': 'DUPLICATE_BET'
             }))
             return
 
@@ -257,7 +466,10 @@ class GameConsumer(AsyncWebsocketConsumer):
             }))
             return
 
-        rg_valid, rg_reason = await responsible_gambling.validate_bet(str(player.id), amount)
+        # Convert amount from rupees to paisa for responsible gambling validation
+        # Frontend sends amount in rupees (e.g., 10), but RG expects paisa (e.g., 1000)
+        amount_in_paisa = amount * 100
+        rg_valid, rg_reason = await responsible_gambling.validate_bet(str(player.id), amount_in_paisa)
         if not rg_valid:
             await self.send(text_data=json.dumps({
                 'type': 'error',
@@ -267,7 +479,6 @@ class GameConsumer(AsyncWebsocketConsumer):
             return
 
         # Check if betting is still allowed and get room data
-        room_data = game_rooms.get(self.room_name)
         if not room_data or not room_data.get('round') or room_data['round'].ended:
             await self.send(text_data=json.dumps({
                 'type': 'error',
@@ -368,15 +579,18 @@ class GameConsumer(AsyncWebsocketConsumer):
             return
 
         # If room already exists in memory, just add player and update time
-        if self.room_name in game_rooms:
-            room_data = game_rooms[self.room_name]
-            room_data['players'].add(self.username)
+        room_data = await game_room_manager.get_room(self.room_name)
+        if room_data is not None:
+            await game_room_manager.update_room(self.room_name,
+                lambda room: room['players'].add(self.username))
 
             # Update time remaining based on actual elapsed time
             game_round = room_data['round']
             time_elapsed = (timezone.now() - game_round.start_time).total_seconds()
             accurate_time_remaining = max(0, ROUND_DURATION - time_elapsed)
-            room_data['time_remaining'] = int(accurate_time_remaining)
+
+            await game_room_manager.update_room(self.room_name,
+                lambda room: room.update({'time_remaining': int(accurate_time_remaining)}))
 
             logger.info(f"Player {self.username} joined existing room {self.room_name}, time remaining: {accurate_time_remaining:.1f}s")
             return
@@ -418,7 +632,8 @@ class GameConsumer(AsyncWebsocketConsumer):
             time_remaining = ROUND_DURATION  # New round starts with full duration
             logger.info(f"Created new round for main room: {game_round.period_id}")
 
-        game_rooms[self.room_name] = {
+        # Create room data
+        room_data = {
             'round': game_round,
             'timer_task': None,
             'players': {self.username},  # Add current player to the set
@@ -427,8 +642,11 @@ class GameConsumer(AsyncWebsocketConsumer):
             'lock': asyncio.Lock()  # Room-specific lock for bet processing
         }
 
+        await game_room_manager.create_room(self.room_name, room_data)
+
         # Only start a new timer if there isn't already one running for this round
-        existing_timer = game_rooms[self.room_name].get('timer_task')
+        current_room = await game_room_manager.get_room(self.room_name)
+        existing_timer = current_room.get('timer_task') if current_room else None
 
         if existing_timer and not existing_timer.done():
             # Timer is already running for this round, don't start a new one
@@ -511,7 +729,7 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def send_game_state(self):
         """Send current game state to the player"""
-        room_data = game_rooms.get(self.room_name)
+        room_data = await game_room_manager.get_room(self.room_name)
         if not room_data:
             return
 
@@ -567,7 +785,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             'time_remaining': int(accurate_time_remaining),
             'player_balance': player.balance,
             'players_count': len(room_data['players']),
-            'round_id': room_data['round'].id,
+            'round_id': str(room_data['round'].id),
             'betting_closed': not server_timer.is_betting_allowed(self.room_name),
             'phase': current_phase,
             'existing_bets': existing_bets,
@@ -590,7 +808,7 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def round_timer(self):
         """Handle the round timer and game progression with improved timing"""
-        room_data = game_rooms.get(self.room_name)
+        room_data = await game_room_manager.get_room(self.room_name)
         if not room_data:
             logger.error(f"Room data not found for {self.room_name}")
             return
@@ -633,36 +851,37 @@ class GameConsumer(AsyncWebsocketConsumer):
                     'phase': 'betting',
                     'timestamp': asyncio.get_event_loop().time(),
                     'server_timestamp': timezone.now().timestamp(),
-                    'round_id': game_round.id,
+                    'round_id': str(game_round.id),
                     'round_start_time': game_round.start_time.timestamp()
                 }
 
-                # Send timer update with reliable delivery (critical for game timing)
-                await reliable_ws_manager.send_reliable_message(
+                # Send timer update with sync data to prevent drift
+                sync_data = {
+                    'server_time': timezone.now().timestamp(),
+                    'round_start_time': game_round.start_time.timestamp(),
+                    'round_duration': 50,  # Total round duration
+                    'sync_id': f"{game_round.id}_{remaining}"  # Unique sync identifier
+                }
+
+                timer_data.update(sync_data)
+
+                # Send lightweight timer update to users (every second) - NO RELIABLE MESSAGES
+                await self.channel_layer.group_send(
                     self.room_group_name,
-                    timer_data,
-                    critical=True,
-                    timeout=5.0
+                    timer_data
                 )
 
-                # Also send the same timer update to admin panel for perfect synchronization
-                await reliable_ws_manager.send_reliable_message(
-                    "admin_game_control",
-                    timer_data,
-                    critical=True,
-                    timeout=5.0
-                )
-
-                # Send timer update to admin panel for synchronization (every second for perfect sync)
+                # Send lightweight timer update to admin panel (every second)
                 await self.channel_layer.group_send(
                     "admin_game_control",
                     {
                         'type': 'timer_sync_update',
-                        'round_id': game_round.id,
+                        'round_id': str(game_round.id),
                         'time_remaining': remaining,
                         'phase': 'betting',
                         'room': self.room_name,
-                        'timestamp': timezone.now().timestamp()
+                        'timestamp': timezone.now().timestamp(),
+                        **sync_data
                     }
                 )
 
@@ -676,7 +895,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                             'phase': 'betting',
                             'server_time': asyncio.get_event_loop().time(),
                             'server_timestamp': timezone.now().timestamp(),
-                            'round_id': game_round.id
+                            'round_id': str(game_round.id)
                         }
                     )
                     last_heartbeat = remaining
@@ -691,27 +910,23 @@ class GameConsumer(AsyncWebsocketConsumer):
             # Ensure betting is properly closed
             room_data['time_remaining'] = 0
 
-            # Close betting with explicit state update (critical message)
-            await reliable_ws_manager.send_reliable_message(
+            # Close betting with explicit state update (lightweight)
+            await self.channel_layer.group_send(
                 self.room_group_name,
                 {
                     'type': 'betting_closed',
                     'message': 'Betting is now closed!'
-                },
-                critical=True,
-                timeout=10.0
+                }
             )
 
-            # Immediate transition to result phase (critical message)
-            await reliable_ws_manager.send_reliable_message(
+            # Immediate transition to result phase (lightweight)
+            await self.channel_layer.group_send(
                 self.room_group_name,
                 {
                     'type': 'timer_update',
                     'time_remaining': 0,
                     'phase': 'result'
-                },
-                critical=True,
-                timeout=10.0
+                }
             )
 
             # Small delay to ensure UI updates, then calculate results
@@ -737,7 +952,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         logger.info(f"Starting end_round for room {self.room_name}")
 
         try:
-            room_data = game_rooms.get(self.room_name)
+            room_data = await game_room_manager.get_room(self.room_name)
             if not room_data:
                 logger.error(f"No room data found for {self.room_name}")
                 return
@@ -874,12 +1089,9 @@ class GameConsumer(AsyncWebsocketConsumer):
                 'verification_hash': verification_hash[:16] if verification_hash else None
             }
 
-            await reliable_ws_manager.send_reliable_message(
+            await self.channel_layer.group_send(
                 self.room_group_name,
-                round_ended_message,
-                critical=True,
-                timeout=15.0,
-                max_retries=5
+                round_ended_message
             )
 
             logger.info(f"Round ended event sent successfully for round {game_round.period_id}")
@@ -936,33 +1148,43 @@ class GameConsumer(AsyncWebsocketConsumer):
         logger.info(f"Started new round for main room: {game_round.period_id}")
 
         # Reset room data
-        game_rooms[self.room_name].update({
+        await game_room_manager.update_room(self.room_name, lambda room: room.update({
             'round': game_round,
             'bets': {},
             'time_remaining': ROUND_DURATION
-        })
+        }))
 
-        # Notify players of new round
+        # Notify players of new round with betting state reset
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 'type': 'new_round_started',
-                'round_id': game_round.id
+                'round_id': str(game_round.id),
+                'time_remaining': ROUND_DURATION,
+                'phase': 'betting',
+                'betting_open': True,
+                'reset_betting_state': True
             }
         )
 
         # Cancel any existing timer task before starting new one
-        if game_rooms[self.room_name]['timer_task']:
-            game_rooms[self.room_name]['timer_task'].cancel()
+        room_data = await game_room_manager.get_room(self.room_name)
+        if room_data and room_data.get('timer_task'):
+            room_data['timer_task'].cancel()
             try:
-                await game_rooms[self.room_name]['timer_task']
+                await room_data['timer_task']
             except asyncio.CancelledError:
                 pass
 
+        # Reset server timer state for new round
+        server_timer_started = server_timer.start_round_timer(self.room_name, game_round)
+        if not server_timer_started:
+            logger.error(f"Failed to start server timer for new round {game_round.period_id}")
+
         # Start new timer
-        game_rooms[self.room_name]['timer_task'] = asyncio.create_task(
-            self.round_timer()
-        )
+        new_timer_task = asyncio.create_task(self.round_timer())
+        await game_room_manager.update_room(self.room_name,
+            lambda room: room.update({'timer_task': new_timer_task}))
 
     # WebSocket event handlers
     async def player_joined(self, event):
@@ -999,31 +1221,24 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def timer_update(self, event):
         """Handle timer update event"""
-        await self.send(text_data=json.dumps(event))
+        try:
+            await self.send(text_data=json.dumps(event))
+        except Exception as e:
+            # Handle closed connection gracefully
+            logger.debug(f"Failed to send timer update to {getattr(self, 'username', 'Unknown')}: {e}")
+            # Don't re-raise the exception to prevent server errors
 
     async def game_state(self, event):
         """Handle game state update event"""
         await self.send(text_data=json.dumps(event))
 
     async def admin_force_round_end(self, event):
-        """Handle admin forced round end"""
-        logger.info(f"Received admin force round end for round {event['round_id']}")
-
-        # Cancel current timer if running
-        room_data = game_rooms.get(self.room_name)
-        if room_data and room_data.get('timer_task'):
-            timer_task = room_data['timer_task']
-            if not timer_task.done():
-                timer_task.cancel()
-                logger.info(f"Cancelled timer for round {event['round_id']} due to admin selection")
-
-        # Immediately end the round
-        await self.end_round()
+        """Handle admin forced round end - DISABLED to prevent premature round ending"""
+        logger.info(f"Admin force round end signal received for round {event['round_id']} but IGNORED - letting timer complete naturally")
+        # DO NOT end the round immediately - let the timer complete the full 50 seconds
+        # Admin selection is stored and will be used when the round ends naturally
 
     async def bet_placed(self, event):
-        await self.send(text_data=json.dumps(event))
-
-    async def timer_update(self, event):
         await self.send(text_data=json.dumps(event))
 
     async def betting_closed(self, event):
@@ -1095,14 +1310,12 @@ class GameConsumer(AsyncWebsocketConsumer):
 
             if new_phase == 'result':
                 # Betting phase ended, close betting
-                await reliable_ws_manager.send_reliable_message(
+                await self.channel_layer.group_send(
                     self.room_group_name,
                     {
                         'type': 'betting_closed',
                         'message': 'Betting is now closed!'
-                    },
-                    critical=True,
-                    timeout=10.0
+                    }
                 )
             elif new_phase == 'ended':
                 # Round ended, calculate results
@@ -1115,9 +1328,13 @@ class GameConsumer(AsyncWebsocketConsumer):
         """Handle timer updates from server-authoritative timer"""
         try:
             # Update room data
-            room_data = game_rooms.get(self.room_name)
-            if room_data:
-                room_data['time_remaining'] = int(time_remaining)
+            await game_room_manager.update_room(self.room_name,
+                lambda room: room.update({'time_remaining': int(time_remaining)}))
+
+            room_data = await game_room_manager.get_room(self.room_name)
+
+            # Get current game round for round_id
+            game_round = room_data.get('current_round') if room_data else None
 
             # Send synchronized timer update to all clients
             timer_data = {
@@ -1128,21 +1345,78 @@ class GameConsumer(AsyncWebsocketConsumer):
                 'sync_data': server_timer.get_sync_data(self.room_name)
             }
 
-            # Send to game room
-            await reliable_ws_manager.send_reliable_message(
+            # Add round_id if available (needed for admin panel)
+            if game_round:
+                timer_data['round_id'] = str(game_round.id)
+                timer_data['timestamp'] = time.time()
+                timer_data['round_start_time'] = game_round.start_time.timestamp()
+
+            # Send to game room (lightweight, no reliability)
+            await self.channel_layer.group_send(
                 self.room_group_name,
-                timer_data,
-                critical=True,
-                timeout=5.0
+                timer_data
             )
 
-            # Send to admin panel
-            await reliable_ws_manager.send_reliable_message(
+            # Send to admin panel (lightweight, no reliability)
+            await self.channel_layer.group_send(
                 "admin_game_control",
-                timer_data,
-                critical=True,
-                timeout=5.0
+                timer_data
             )
 
         except Exception as e:
             logger.error(f"Error handling timer update in room {self.room_name}: {e}")
+
+    def _get_client_ip(self):
+        """Get client IP address from WebSocket scope"""
+        headers = dict(self.scope.get('headers', []))
+
+        # Check for forwarded headers first
+        forwarded_for = headers.get(b'x-forwarded-for')
+        if forwarded_for:
+            return forwarded_for.decode().split(',')[0].strip()
+
+        real_ip = headers.get(b'x-real-ip')
+        if real_ip:
+            return real_ip.decode().strip()
+
+        # Fallback to client from scope
+        client = self.scope.get('client')
+        if client:
+            return client[0]
+
+        return '127.0.0.1'
+
+    async def _track_connection_start(self):
+        """Track the start of a WebSocket connection"""
+        from django.core.cache import cache
+
+        if not hasattr(self, 'client_ip'):
+            return
+
+        active_connections_key = f"ws_active_connections:{self.client_ip}"
+
+        # Increment active connection count
+        current_count = cache.get(active_connections_key, 0)
+        cache.set(active_connections_key, current_count + 1, 3600)  # 1 hour timeout
+
+        logger.debug(f"WebSocket connection started for {self.client_ip}, active connections: {current_count + 1}")
+
+    async def _track_connection_end(self):
+        """Track the end of a WebSocket connection"""
+        from django.core.cache import cache
+
+        if not hasattr(self, 'client_ip'):
+            return
+
+        active_connections_key = f"ws_active_connections:{self.client_ip}"
+
+        # Decrement active connection count
+        current_count = cache.get(active_connections_key, 0)
+        new_count = max(0, current_count - 1)  # Ensure it doesn't go below 0
+
+        if new_count > 0:
+            cache.set(active_connections_key, new_count, 3600)  # 1 hour timeout
+        else:
+            cache.delete(active_connections_key)  # Clean up if no active connections
+
+        logger.debug(f"WebSocket connection ended for {self.client_ip}, active connections: {new_count}")
